@@ -45,7 +45,7 @@ class Player:
     def apply_gravity(self):
         self.y_velocity += GRAVITY
 
-    def update(self, platforms, slides):
+    def update(self, platforms, slides, trampolines):
         # Apply horizontal movement
         self.rect.x += self.x_velocity
         # Collision in x-direction
@@ -59,6 +59,8 @@ class Player:
         
         # Now check if we're on the slide
         self.check_slides(slides)
+        # Finally, check trampolines
+        self.check_trampolines(trampolines)
 
     def check_collisions_x(self, platforms):
         for platform in platforms:
@@ -142,4 +144,16 @@ class Player:
         self.y_velocity = abs(self.x_velocity * slope)
         
     def draw(self, surface):
-        pygame.draw.rect(surface, RED, self.rect) 
+        pygame.draw.rect(surface, RED, self.rect)
+
+    def check_trampolines(self, trampolines):
+        for tramp in trampolines:
+            if self.rect.colliderect(tramp):
+                # If the player is falling down
+                if self.y_velocity > 0:
+                    # Position player on top of trampoline
+                    self.rect.bottom = tramp.top
+                    # Bounce higher than normal
+                    self.y_velocity = -JUMP_FORCE * 2
+                    # Not on_ground so we can keep applying gravity
+                    self.on_ground = False 

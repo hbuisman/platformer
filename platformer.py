@@ -6,7 +6,7 @@ from level import Level   # <-- Import the new Level class
 pygame.init()
 
 # Constants
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1200, 800
 FPS = 60
 GRAVITY = 0.5
 PLAYER_SPEED = 5
@@ -36,8 +36,7 @@ def main():
                 running = False
         
         player.handle_input()
-        # Pass both level.platforms and level.slides
-        player.update(level.platforms, level.slides)
+        player.update(level.platforms, level.slides, level.trampolines)
         
         screen.fill(WHITE)
         player.draw(screen)
