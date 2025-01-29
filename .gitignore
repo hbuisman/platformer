@@ -1,1 +1,16 @@
- 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.env/
+
+# Mac / Windows files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE-specific folders
+.vscode/
+.idea/ 
