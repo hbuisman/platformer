@@ -22,6 +22,10 @@ BLUE  = (0, 0, 255)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Basic Platformer")
 
+# Load and scale background image
+background = pygame.image.load("images/background.png").convert()
+background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+
 clock = pygame.time.Clock()
 
 def main():
@@ -53,7 +57,9 @@ def main():
         # Update panel position
         inventory.update()
 
-        screen.fill(WHITE)
+        # Draw background
+        screen.blit(background, (0, 0))
+
         player.draw(screen)
         # Draw the level
         level.draw(screen)
