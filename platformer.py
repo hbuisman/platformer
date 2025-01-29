@@ -26,6 +26,11 @@ pygame.display.set_caption("Basic Platformer")
 background = pygame.image.load("images/background.png").convert()
 background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 
+# Create a semi-transparent white overlay for fading the background
+overlay = pygame.Surface((WIDTH, HEIGHT))
+overlay.fill((255, 255, 255))
+overlay.set_alpha(128)  # 128 is half transparent (0 is invisible, 255 is solid)
+
 clock = pygame.time.Clock()
 
 def main():
@@ -57,8 +62,9 @@ def main():
         # Update panel position
         inventory.update()
 
-        # Draw background
+        # Draw background with fade effect
         screen.blit(background, (0, 0))
+        screen.blit(overlay, (0, 0))  # Apply the semi-transparent overlay
 
         player.draw(screen)
         # Draw the level

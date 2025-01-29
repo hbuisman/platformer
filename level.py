@@ -35,18 +35,11 @@ class Level:
             pygame.Rect(900, 400, 150, 20),  # A bit higher
         ]
         
-        # ADD A DIAGONAL SLIDE PLATFORM HERE:
         self.slides = [
-            # This slide goes from (500, 250) down to (700, 550)
-            # Adjust coordinates however you like
             SlidePlatform(500, 350, 700, 550)
         ]
-        # Move trampoline to a better location (x=900, y=600)
-        self.trampolines = [
-            pygame.Rect(900, 600, 75, 20)
-        ]
         self.portals = []  # Will store Portal objects
-        self.next_portal_id = 1  # Keep track of portal pair IDs
+        self.next_portal_id = 1
 
         # For dragging logic:
         self.dragging_item = None  # Will hold a reference to whichever item (Rect or SlidePlatform) is being dragged
@@ -59,6 +52,29 @@ class Level:
         scaled_w = int(ground_texture_orig.get_width() * height_ratio)
         scaled_h = 50
         self.ground_texture = pygame.transform.scale(ground_texture_orig, (scaled_w, scaled_h))
+
+        # Load stone texture for other platforms
+        stone_texture_orig = pygame.image.load("images/stone-platform.png").convert_alpha()
+        # Scale stone texture to match platform height (20px)
+        height_ratio = 20 / stone_texture_orig.get_height()
+        scaled_w = int(stone_texture_orig.get_width() * height_ratio)
+        scaled_h = 20
+        self.stone_texture = pygame.transform.scale(stone_texture_orig, (scaled_w, scaled_h))
+
+        # Load trampoline texture
+        tramp_texture_orig = pygame.image.load("images/trampoline.png").convert_alpha()
+        # Scale to match trampoline height (40px - twice as tall)
+        height_ratio = 40 / tramp_texture_orig.get_height()
+        scaled_w = int(tramp_texture_orig.get_width() * height_ratio)
+        scaled_h = 40
+        self.tramp_texture = pygame.transform.scale(tramp_texture_orig, (scaled_w, scaled_h))
+        # Calculate width maintaining aspect ratio of 363:198
+        self.tramp_width = int(40 * (363/198))  # If height is 40, width should be ~73
+        
+        # Initialize trampolines after we have calculated tramp_width
+        self.trampolines = [
+            pygame.Rect(900, 580, self.tramp_width, 40)  # Correct aspect ratio
+        ]
 
     def handle_mouse_events(self, events):
         """Give this method a list of pygame events. Handles click-dragging of items."""
@@ -135,16 +151,18 @@ class Level:
             self.dragging_item.rect.y = mouse_y - self.drag_offset_y
 
     def draw(self, surface):
-        # Assume the first entry in self.platforms is the ground
+        # Draw ground (first platform)
         ground = self.platforms[0]
         self.draw_ground_with_texture(surface, ground)
 
-        # Draw other (non-ground) platforms
+        # Draw other platforms
         for platform in self.platforms[1:]:
             if platform == self.dragging_item:
-                pygame.draw.rect(surface, (255, 0, 255), platform)
+                # Draw highlighted platform when dragging
+                pygame.draw.rect(surface, (255, 0, 255), platform, border_radius=3)
             else:
-                pygame.draw.rect(surface, BLUE, platform)
+                # Draw stone texture
+                self.draw_platform_with_texture(surface, platform)
 
         # Draw slides
         for slide in self.slides:
@@ -156,9 +174,11 @@ class Level:
         # Draw trampolines
         for tramp in self.trampolines:
             if tramp == self.dragging_item:
-                pygame.draw.rect(surface, (255, 0, 255), tramp)
+                # Draw highlighted trampoline when dragging
+                pygame.draw.rect(surface, (255, 0, 255), tramp, border_radius=3)
             else:
-                pygame.draw.rect(surface, LILA, tramp)
+                # Draw trampoline texture
+                self.draw_trampoline_with_texture(surface, tramp)
 
         # Draw portals
         for portal in self.portals:
@@ -171,6 +191,20 @@ class Level:
         for x in range(ground.x, ground.x + ground.width, texture_w):
             for y in range(ground.y, ground.y + ground.height, texture_h):
                 surface.blit(self.ground_texture, (x, y))
+
+    def draw_platform_with_texture(self, surface, platform):
+        """Draw a non-ground platform using the stone texture."""
+        texture_w = self.stone_texture.get_width()
+        # Only need one row since platform height matches texture height
+        for x in range(platform.x, platform.x + platform.width, texture_w):
+            surface.blit(self.stone_texture, (x, platform.y))
+
+    def draw_trampoline_with_texture(self, surface, tramp):
+        """Draw a trampoline using the trampoline texture."""
+        texture_w = self.tramp_texture.get_width()
+        # Center the texture on the trampoline rect if sizes don't match
+        x = tramp.x + (tramp.width - texture_w) // 2
+        surface.blit(self.tramp_texture, (x, tramp.y))
 
     def remove_item(self, item):
         """Remove an existing platform, trampoline, or slide from the level."""
@@ -200,7 +234,7 @@ class Level:
 
     def add_trampoline(self):
         # Create a new trampoline near the top left
-        new_tramp = pygame.Rect(100, 150, 75, 20)
+        new_tramp = pygame.Rect(100, 150, self.tramp_width, 40)  # Using stored width with correct ratio
         self.trampolines.append(new_tramp)
 
     def add_portal(self):
