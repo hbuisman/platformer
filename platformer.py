@@ -36,8 +36,8 @@ def main():
                 running = False
         
         player.handle_input()
-        # Update collisions using level.platforms
-        player.update(level.platforms)
+        # Pass both level.platforms and level.slides
+        player.update(level.platforms, level.slides)
         
         screen.fill(WHITE)
         player.draw(screen)
