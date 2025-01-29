@@ -48,7 +48,7 @@ def main():
             inventory.handle_event(event, level)
 
         player.handle_input()
-        player.update(level.platforms, level.slides, level.trampolines)
+        player.update(level.platforms, level.slides, level.trampolines, level)
         
         # Update panel position
         inventory.update()

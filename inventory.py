@@ -6,6 +6,7 @@ ICONS = [
     {"type": "platform",   "color": (0, 0, 255),   "rect": pygame.Rect(10,  50, 40, 40)},
     {"type": "slide",      "color": (0, 200, 0),   "rect": pygame.Rect(10, 110, 40, 40)},
     {"type": "trampoline", "color": (200, 0, 200), "rect": pygame.Rect(10, 170, 40, 40)},
+    {"type": "portal",     "color": (255, 165, 0), "rect": pygame.Rect(10, 230, 40, 40)},
 ]
 
 class InventoryPanel:
@@ -76,12 +77,13 @@ class InventoryPanel:
                 mx, my = event.pos
                 panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
                 if not panel_rect.collidepoint(mx, my):
-                    # Create the item in the level
                     if self.dragging_icon["type"] == "platform":
                         level.add_platform()
                     elif self.dragging_icon["type"] == "slide":
                         level.add_slide()
                     elif self.dragging_icon["type"] == "trampoline":
                         level.add_trampoline()
+                    elif self.dragging_icon["type"] == "portal":
+                        level.add_portal()
                 # End drag
                 self.dragging_icon = None 

@@ -45,7 +45,7 @@ class Player:
     def apply_gravity(self):
         self.y_velocity += GRAVITY
 
-    def update(self, platforms, slides, trampolines):
+    def update(self, platforms, slides, trampolines, level):
         # Apply horizontal movement
         self.rect.x += self.x_velocity
         # Collision in x-direction
@@ -61,6 +61,7 @@ class Player:
         self.check_slides(slides)
         # Finally, check trampolines
         self.check_trampolines(trampolines)
+        self.check_portals(level.portals, level)
 
     def check_collisions_x(self, platforms):
         for platform in platforms:
@@ -156,4 +157,15 @@ class Player:
                     # Bounce higher than normal
                     self.y_velocity = -JUMP_FORCE * 2
                     # Not on_ground so we can keep applying gravity
-                    self.on_ground = False 
+                    self.on_ground = False
+
+    def check_portals(self, portals, level):
+        """Check if we've entered a portal entrance"""
+        for portal in portals:
+            if portal.is_entrance and self.rect.colliderect(portal.rect):
+                # Find the exit portal
+                exit_portal = level.find_portal_pair(portal)
+                if exit_portal:
+                    # Teleport to exit, maintaining velocity
+                    self.rect.centerx = exit_portal.rect.centerx
+                    self.rect.bottom = exit_portal.rect.bottom 
