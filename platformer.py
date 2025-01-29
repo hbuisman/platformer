@@ -2,6 +2,7 @@ import pygame
 import sys
 from player import Player  # <-- Import the Player class from player.py
 from level import Level   # <-- Import the new Level class
+from inventory import InventoryPanel
 
 pygame.init()
 
@@ -27,21 +28,37 @@ def main():
     # Create a player and a new Level instance
     player = Player(x=100, y=300, width=40, height=40)
     level = Level()
+    inventory = InventoryPanel(WIDTH, HEIGHT)
     
     running = True
     while running:
         clock.tick(FPS)
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_i:
+                # Toggle the panel
+                inventory.toggle(WIDTH)
         
+        # Let the level handle mouse events for dragging
+        level.handle_mouse_events(events)
+        # Pass events to the inventory
+        for event in events:
+            inventory.handle_event(event, level)
+
         player.handle_input()
         player.update(level.platforms, level.slides, level.trampolines)
         
+        # Update panel position
+        inventory.update()
+
         screen.fill(WHITE)
         player.draw(screen)
         # Draw the level
         level.draw(screen)
+        # Draw panel last so it sits on top
+        inventory.draw(screen)
         
         pygame.display.flip()
     
