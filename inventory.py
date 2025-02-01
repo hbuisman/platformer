@@ -52,8 +52,8 @@ class InventoryPanel:
 
         # Scale portrait images
         for char in CHARACTERS:
-            char["portrait"] = pygame.transform.scale(char["portrait"], 
-                                                    (PORTRAIT_SIZE, PORTRAIT_SIZE))
+            char["portrait"] = pygame.transform.smoothscale(char["portrait"], 
+                                                          (PORTRAIT_SIZE, PORTRAIT_SIZE))
 
     def toggle(self, screen_width):
         self.open = not self.open

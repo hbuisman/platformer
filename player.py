@@ -21,7 +21,7 @@ class Player:
         
         # Load player image and scale it to match the new collision rect
         self.image = pygame.image.load("images/player_big.png").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (width * 2, height * 2))
+        self.image = pygame.transform.smoothscale(self.image, (width * 2, height * 2))
         
         # Create flipped version of the image
         self.image_right = self.image
@@ -192,7 +192,7 @@ class Player:
         """Change the player's sprite and sound"""
         # Load and scale new image
         self.image = pygame.image.load(sprite_path).convert_alpha()
-        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        self.image = pygame.transform.smoothscale(self.image, (self.width, self.height))
         
         # Update both directional images
         self.image_right = self.image

@@ -51,7 +51,7 @@ class Level:
         height_ratio = 50 / ground_texture_orig.get_height()
         scaled_w = int(ground_texture_orig.get_width() * height_ratio)
         scaled_h = 50
-        self.ground_texture = pygame.transform.scale(ground_texture_orig, (scaled_w, scaled_h))
+        self.ground_texture = pygame.transform.smoothscale(ground_texture_orig, (scaled_w, scaled_h))
 
         # Load stone texture for other platforms
         stone_texture_orig = pygame.image.load("images/stone-platform.png").convert_alpha()
@@ -59,7 +59,7 @@ class Level:
         height_ratio = 20 / stone_texture_orig.get_height()
         scaled_w = int(stone_texture_orig.get_width() * height_ratio)
         scaled_h = 20
-        self.stone_texture = pygame.transform.scale(stone_texture_orig, (scaled_w, scaled_h))
+        self.stone_texture = pygame.transform.smoothscale(stone_texture_orig, (scaled_w, scaled_h))
 
         # Load trampoline texture
         tramp_texture_orig = pygame.image.load("images/trampoline.png").convert_alpha()
@@ -67,7 +67,7 @@ class Level:
         height_ratio = 40 / tramp_texture_orig.get_height()
         scaled_w = int(tramp_texture_orig.get_width() * height_ratio)
         scaled_h = 40
-        self.tramp_texture = pygame.transform.scale(tramp_texture_orig, (scaled_w, scaled_h))
+        self.tramp_texture = pygame.transform.smoothscale(tramp_texture_orig, (scaled_w, scaled_h))
         # Calculate width maintaining aspect ratio of 363:198
         self.tramp_width = int(40 * (363/198))  # If height is 40, width should be ~73
         
@@ -115,7 +115,7 @@ class Level:
     def find_clicked_item(self, mouse_x, mouse_y):
         """Check if mouse_x, mouse_y is inside a Rect or near a SlidePlatform."""
         # First check each platform
-        for p in self.platforms:
+        for p in self.platforms[1:]:  # Start from second platform
             if p.collidepoint(mouse_x, mouse_y):
                 return p
         # Then check trampolines
