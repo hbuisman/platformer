@@ -143,23 +143,22 @@ class Player:
         return False
 
     def align_on_slide(self, slide):
-        # Compute slope of the line
         dx = slide.x2 - slide.x1
         dy = slide.y2 - slide.y1
-        slope = dy / dx
-        
+        slope = dy / dx if dx != 0 else 0
+
         # Reposition the player so bottom is exactly on the slide
         bottom_center_x = self.rect.centerx
         y_on_slide = slide.y1 + slope * (bottom_center_x - slide.x1)
         self.rect.bottom = y_on_slide
-        
-        # Optionally give a sideways + downward velocity
-        # We can set x_velocity based on the slope's direction
-        slide_direction = 1 if slide.x2 > slide.x1 else -1
-        self.x_velocity = slide_direction * 2  # speed along x
-        # For downward effect, add some downward velocity
+
+        # Determine direction: if the slide is drawn from right to left, x2 < x1 => move left
+        slide_direction = -1 if slide.x2 < slide.x1 else 1  
+        self.x_velocity = slide_direction * 2
+        # For downward effect, match slope magnitude on y_velocity
+        # Using abs(...) so it always slides "down" the slope
         self.y_velocity = abs(self.x_velocity * slope)
-        
+
     def draw(self, surface):
         # Use the appropriate image based on direction
         image_to_draw = self.image_right if self.facing_right else self.image_left

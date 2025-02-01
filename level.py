@@ -1,4 +1,5 @@
 import pygame
+import math
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -8,12 +9,8 @@ class Portal:
         # Create the sprite
         if is_entrance:
             self.image = pygame.image.load('images/portal_entry.png').convert_alpha()
-            # Flip entry portal horizontally
-            self.image = pygame.transform.flip(self.image, True, False)
         else:
             self.image = pygame.image.load('images/portal_exit.png').convert_alpha()
-            # Flip exit portal horizontally
-            self.image = pygame.transform.flip(self.image, True, False)
         
         # Scale the portal image to twice the original size (60x120 instead of 30x60)
         self.image = pygame.transform.smoothscale(self.image, (60, 120))
@@ -47,17 +44,21 @@ class Level:
         screen_width = screen.get_width()
         screen_height = screen.get_height()
         
+        # Make platforms 1.5x larger (original width was 150, height was 20)
+        platform_width = 225  # 150 * 1.5
+        platform_height = 30  # 20 * 1.5
+        
         # You can define platforms here or load them from a file, etc.
         self.platforms = [
             pygame.Rect(0, screen_height - 50, screen_width, 50),  # Floor at bottom of screen
-            pygame.Rect(300, 600, 150, 20),  # Lower platform
-            pygame.Rect(500, 500, 150, 20),  # Middle platform
-            pygame.Rect(700, 450, 150, 20),  # Another one for vertical stepping
-            pygame.Rect(900, 400, 150, 20),  # A bit higher
+            pygame.Rect(300, 600, platform_width, platform_height),  # Lower platform
+            pygame.Rect(500, 500, platform_width, platform_height),  # Middle platform
+            pygame.Rect(700, 450, platform_width, platform_height),  # Another one for vertical stepping
+            pygame.Rect(900, 400, platform_width, platform_height),  # A bit higher
         ]
         
         self.slides = [
-            SlidePlatform(500, 350, 700, 550)
+            SlidePlatform(700, 350, 500, 550)
         ]
         self.portals = []  # Will store Portal objects
         self.next_portal_id = 1
@@ -76,10 +77,9 @@ class Level:
 
         # Load stone texture for other platforms
         stone_texture_orig = pygame.image.load("images/stone-platform.png").convert_alpha()
-        # Scale stone texture to match platform height (20px)
-        height_ratio = 20 / stone_texture_orig.get_height()
+        height_ratio = platform_height / stone_texture_orig.get_height()
         scaled_w = int(stone_texture_orig.get_width() * height_ratio)
-        scaled_h = 20
+        scaled_h = platform_height
         self.stone_texture = pygame.transform.smoothscale(stone_texture_orig, (scaled_w, scaled_h))
 
         # Load trampoline texture
@@ -125,20 +125,26 @@ class Level:
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging_item:
                     mouse_x, mouse_y = event.pos
-                    # Update position based on stored offset
+                    dx = mouse_x + self.drag_offset_x
+                    dy = mouse_y + self.drag_offset_y
+
                     if isinstance(self.dragging_item, Portal):
-                        self.dragging_item.rect.x = mouse_x + self.drag_offset_x
-                        self.dragging_item.rect.y = mouse_y + self.drag_offset_y
+                        self.dragging_item.rect.x = dx
+                        self.dragging_item.rect.y = dy
                     elif isinstance(self.dragging_item, pygame.Rect):
-                        self.dragging_item.x = mouse_x + self.drag_offset_x
-                        self.dragging_item.y = mouse_y + self.drag_offset_y
+                        self.dragging_item.x = dx
+                        self.dragging_item.y = dy
                     elif isinstance(self.dragging_item, SlidePlatform):
-                        dx = mouse_x + self.drag_offset_x - self.dragging_item.x1
-                        dy = mouse_y + self.drag_offset_y - self.dragging_item.y1
-                        self.dragging_item.x1 += dx
-                        self.dragging_item.y1 += dy
-                        self.dragging_item.x2 += dx
-                        self.dragging_item.y2 += dy
+                        # Move the slide endpoints
+                        slide = self.dragging_item
+                        delta_x = dx - slide.x1
+                        delta_y = dy - slide.y1
+                        slide.x1 += delta_x
+                        slide.y1 += delta_y
+                        slide.x2 += delta_x
+                        slide.y2 += delta_y
+                        # Update the texture rect so the image moves
+                        slide.update_rect_position()
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 self.dragging_item = None
@@ -186,12 +192,10 @@ class Level:
         # Draw slides
         for slide in self.slides:
             if slide == self.dragging_item:
-                # Draw magenta-tinted slide when dragging
-                pygame.draw.line(surface, (255, 0, 255, 180), 
-                               (slide.x1, slide.y1), 
-                               (slide.x2, slide.y2), 5)
+                # Let the slide draw itself with magenta tint
+                slide.draw(surface, highlight=True)
             else:
-                slide.draw(surface)
+                slide.draw(surface, highlight=False)
 
         # Draw trampolines
         for tramp in self.trampolines:
@@ -249,13 +253,13 @@ class Level:
             self.dragging_item = None
 
     def add_platform(self, x, y):
-        # Create a new platform at the mouse position
-        new_rect = pygame.Rect(x - 75, y - 10, 150, 20)  # Center on mouse
+        # Create a new platform at the mouse position, 1.5x larger
+        new_rect = pygame.Rect(x - 112, y - 15, 225, 30)  # Centered on mouse
         self.platforms.append(new_rect)
 
     def add_slide(self, x, y):
-        # Create a new Slide at mouse position, angled down-right
-        new_slide = SlidePlatform(x, y, x + 100, y + 100)
+        # Create a new Slide at (x, y) that slopes top-right -> bottom-left 
+        new_slide = SlidePlatform(x, y, x - 100, y + 100)
         self.slides.append(new_slide)
 
     def add_trampoline(self, x, y):
@@ -285,46 +289,66 @@ class SlidePlatform:
     def __init__(self, x1, y1, x2, y2):
         self.x1, self.y1 = x1, y1
         self.x2, self.y2 = x2, y2
-        self.color = (0, 200, 0)  # green line for the slide
+
+        # Load slide texture in original orientation
+        self.texture = pygame.image.load("images/slide.png").convert_alpha()
+        
+        # Original image is 379×349; double our old height (120 px)
+        new_height = 120
+        ratio = new_height / 349
+        new_width = int(379 * ratio)
+        
+        # Scale image to keep original orientation & aspect ratio
+        self.texture = pygame.transform.smoothscale(
+            self.texture, (new_width, new_height)
+        )
+        
+        # Make the "slide_thickness" match new_height
+        self.slide_thickness = new_height
+
+        # Store rect and position it at the midpoint of the line
+        self.rect = self.texture.get_rect()
+        self.update_rect_position()
+
+    def update_rect_position(self):
+        # Center the unrotated texture on the midpoint of (x1,y1) and (x2,y2)
+        mid_x = (self.x1 + self.x2) // 2
+        mid_y = (self.y1 + self.y2) // 2
+        self.rect.center = (mid_x, mid_y)
 
     def draw(self, surface, highlight=False):
-        color = self.color
+        # If dragging, draw a magenta-tinted version
         if highlight:
-            color = (255, 0, 255)  # magenta if being dragged
-        pygame.draw.line(surface, color, (self.x1, self.y1), (self.x2, self.y2), 5)
+            tinted = self.texture.copy()
+            overlay = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
+            overlay.fill((255, 0, 255, 128))
+            tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            surface.blit(tinted, self.rect)
+        else:
+            surface.blit(self.texture, self.rect)
 
-    def point_is_near(self, mx, my, threshold=8):
-        """Check if point (mx,my) is within 'threshold' distance of the line segment."""
-        # We'll do a simple distance-from-segment check:
-        # Formula ref: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-        import math
+    def point_is_near(self, mx, my, threshold=30):
+        """Check if point (mx,my) is near the slide using line-based collision."""
+        # First check if point is within the texture's bounding rect
+        if not self.rect.collidepoint(mx, my):
+            return False
+
+        # Then check distance to the line for actual "sliding" logic
         px, py = mx, my
         ax, ay = self.x1, self.y1
         bx, by = self.x2, self.y2
-        # Vector from A->B
+        
         abx = bx - ax
         aby = by - ay
-        # Vector from A->P
         apx = px - ax
         apy = py - ay
 
         ab_len_sq = abx**2 + aby**2
         if ab_len_sq == 0:
-            # Degenerate line
-            dist_sq = (px - ax)**2 + (py - ay)**2
-            return dist_sq <= threshold**2
+            return False
 
-        # Dot product, clamp [0,1]
-        t = (apx * abx + apy * aby) / float(ab_len_sq)
-        if t < 0:
-            t = 0
-        elif t > 1:
-            t = 1
-
-        # Projection
+        t = max(0, min(1, (apx * abx + apy * aby) / ab_len_sq))
         projx = ax + t * abx
         projy = ay + t * aby
-
-        # Distance from P to the projection
         dist_sq = (px - projx)**2 + (py - projy)**2
-        return dist_sq <= threshold**2 
+        return dist_sq <= self.slide_thickness**2 

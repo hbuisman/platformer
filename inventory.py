@@ -10,14 +10,14 @@ ICONS = [
     {
         "type": "platform",
         "color": (0, 0, 255),  # keep color as fallback
-        "rect": pygame.Rect(10, 50, 150, 20),  # wider to match stone texture
+        "rect": pygame.Rect(10, 50, 225, 30),  # 1.5x larger
         "image_path": "images/stone-platform.png"
     },
     {
         "type": "slide",
         "color": (0, 200, 0),
-        "rect": pygame.Rect(10, 110, 100, 100),  # square area for slide preview
-        "is_slide": True  # flag to indicate this needs special drawing
+        "rect": pygame.Rect(10, 110, 100, 92),  # Maintain 379:349 ratio
+        "image_path": "images/slide.png"  # Add image path for slide
     },
     {
         "type": "trampoline",
@@ -172,25 +172,8 @@ class InventoryPanel:
             rect_copy = icon["rect"].copy()
             rect_copy.x += self.x
             
-            if icon.get("is_slide"):
-                # Draw slide preview as a diagonal line with some thickness
-                start_pos = (rect_copy.left + 10, rect_copy.top + 10)
-                end_pos = (rect_copy.right - 10, rect_copy.bottom - 10)
-                pygame.draw.line(surface, (0, 200, 0), start_pos, end_pos, 5)
-                # Add arrow at the end to show direction
-                arrow_length = 15
-                dx = end_pos[0] - start_pos[0]
-                dy = end_pos[1] - start_pos[1]
-                length = (dx*dx + dy*dy)**0.5
-                dx, dy = dx/length, dy/length
-                arrow_p1 = (end_pos[0] - arrow_length*dx - arrow_length*dy,
-                           end_pos[1] - arrow_length*dy + arrow_length*dx)
-                arrow_p2 = (end_pos[0] - arrow_length*dx + arrow_length*dy,
-                           end_pos[1] - arrow_length*dy - arrow_length*dx)
-                pygame.draw.polygon(surface, (0, 200, 0), [end_pos, arrow_p1, arrow_p2])
-            else:
-                # Draw the texture for non-slide items
-                surface.blit(self.textures[icon["type"]], rect_copy)
+            # Draw the texture for all items (slides now included)
+            surface.blit(self.textures[icon["type"]], rect_copy)
             
             # Add a subtle border around the icon
             pygame.draw.rect(surface, (100, 100, 100), rect_copy, 1)
@@ -207,41 +190,19 @@ class InventoryPanel:
             # Draw portrait inside border
             surface.blit(char["portrait"], rect_copy)
         
-        # If dragging, draw ghost with magenta tint
+        # If dragging, update ghost drawing for slides too
         if self.dragging_icon:
             mx, my = pygame.mouse.get_pos()
             w = self.dragging_icon["rect"].width
             h = self.dragging_icon["rect"].height
             draw_rect = pygame.Rect(mx - w//2, my - h//2, w, h)
             
-            if self.dragging_icon.get("is_slide"):
-                # Draw magenta-tinted slide preview
-                ghost_surface = pygame.Surface((w, h), pygame.SRCALPHA)
-                # Draw line in magenta
-                pygame.draw.line(ghost_surface, (255, 0, 255, 180), 
-                               (10, 10), (w-10, h-10), 5)
-                # Add magenta arrow
-                arrow_length = 15
-                dx = w-20
-                dy = h-20
-                length = (dx*dx + dy*dy)**0.5
-                dx, dy = dx/length, dy/length
-                arrow_p1 = (w-10 - arrow_length*dx - arrow_length*dy,
-                           h-10 - arrow_length*dy + arrow_length*dx)
-                arrow_p2 = (w-10 - arrow_length*dx + arrow_length*dy,
-                           h-10 - arrow_length*dy - arrow_length*dx)
-                pygame.draw.polygon(ghost_surface, (255, 0, 255, 180), 
-                                  [(w-10, h-10), arrow_p1, arrow_p2])
-                surface.blit(ghost_surface, draw_rect)
-            else:
-                # Create magenta-tinted version of texture
-                ghost_texture = self.textures[self.dragging_icon["type"]].copy()
-                # Create magenta overlay
-                overlay = pygame.Surface(ghost_texture.get_size(), pygame.SRCALPHA)
-                overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
-                # Apply overlay to ghost texture
-                ghost_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                surface.blit(ghost_texture, draw_rect)
+            # Create magenta-tinted version of texture for all items
+            ghost_texture = self.textures[self.dragging_icon["type"]].copy()
+            overlay = pygame.Surface(ghost_texture.get_size(), pygame.SRCALPHA)
+            overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
+            ghost_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            surface.blit(ghost_texture, draw_rect)
 
     def handle_event(self, event, level, player):
         # Only process if we are open
