@@ -19,6 +19,11 @@ BLACK = (0, 0, 0)
 RED   = (255, 0, 0)
 BLUE  = (0, 0, 255)
 
+# Setup font for UI text
+UI_FONT = pygame.font.SysFont(None, 32)  # None uses default system font
+INVENTORY_PROMPT = UI_FONT.render("Press I for inventory", True, BLACK)
+PROMPT_PADDING = 10  # Padding from screen edge
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Basic Platformer")
 
@@ -69,6 +74,12 @@ def main():
         player.draw(screen)
         # Draw the level
         level.draw(screen)
+        # Draw "Press I for inventory" prompt if inventory is closed
+        if not inventory.open:
+            # Position in top right corner with padding
+            prompt_rect = INVENTORY_PROMPT.get_rect()
+            prompt_rect.topright = (WIDTH - PROMPT_PADDING, PROMPT_PADDING)
+            screen.blit(INVENTORY_PROMPT, prompt_rect)
         # Draw panel last so it sits on top
         inventory.draw(screen)
         
