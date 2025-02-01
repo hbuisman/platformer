@@ -79,6 +79,12 @@ class Player:
         self.check_trampolines(trampolines)
         self.check_portals(level.portals, level)
 
+        # 1) Make sure we aren't stuck below any platform
+        self.ensure_not_below_any_platform(platforms)
+
+        # 2) Check if we've gone off-screen
+        self.check_off_screen()
+
     def check_collisions_x(self, platforms):
         for platform in platforms:
             if self.rect.colliderect(platform):
@@ -198,4 +204,27 @@ class Player:
         self.image_left = pygame.transform.flip(self.image, True, False)
         
         # Load new sound
-        self.ouch_sound = pygame.mixer.Sound(sound_path) 
+        self.ouch_sound = pygame.mixer.Sound(sound_path)
+
+    def ensure_not_below_any_platform(self, platforms):
+        """If the player is inside a platform from above, place them on top and stop sliding."""
+        for platform in platforms:
+            if self.rect.colliderect(platform):
+                # If our bottom is below the top of the platform, we came from above
+                if self.rect.bottom > platform.top and self.y_velocity >= 0:
+                    self.rect.bottom = platform.top
+                    self.y_velocity = 0
+                    self.on_slide = False  # stop sliding
+                    self.on_ground = True
+
+    def check_off_screen(self):
+        """If we go off-screen, teleport back to the center and start a brief 'disappeared' timer."""
+        screen = pygame.display.get_surface()
+        screen_width, screen_height = screen.get_width(), screen.get_height()
+
+        # If bottom is below the screen, or we move off left/right
+        if self.rect.top > screen_height or self.rect.right < 0 or self.rect.left > screen_width:
+            # Teleport to center
+            self.rect.center = (screen_width // 2, screen_height // 2)
+            # Start a brief timer to show the message
+            self.disappeared_timer = 120  # ~2 seconds at 60 FPS 
