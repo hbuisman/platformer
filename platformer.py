@@ -25,7 +25,7 @@ BUTTON_TEXT = (255, 255, 255)
 
 # Setup font for UI text
 UI_FONT = pygame.font.SysFont(None, 32)  # None uses default system font
-INVENTORY_PROMPT = UI_FONT.render("Press I for inventory", True, BLACK)
+INVENTORY_PROMPT = UI_FONT.render("Press i for inventory", True, BLACK)
 PROMPT_PADDING = 10  # Padding from screen edge
 
 # Set up fullscreen display
@@ -41,7 +41,7 @@ background = pygame.transform.smoothscale(background, (SCREEN_WIDTH, SCREEN_HEIG
 # Create a semi-transparent white overlay for fading the background
 overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 overlay.fill((255, 255, 255))
-overlay.set_alpha(128)  # 128 is half transparent (0 is invisible, 255 is solid)
+overlay.set_alpha(80)  # slightly less opaque for a more modern "frosted" feel
 
 clock = pygame.time.Clock()
 
@@ -151,17 +151,13 @@ def main():
                 inventory.handle_event(event, level, player)
             player.handle_input()
             player.update(level.platforms, level.slides, level.trampolines, level)
-            inventory.update()
-        else:
-            # Update dialog hover states
-            if exit_dialog.handle_mouse(mouse_pos):
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-            else:
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        
+        # Always update inventory so panel/tooltip positions are correct
+        inventory.update()
         
         # Draw background with fade effect
         screen.blit(background, (0, 0))
-        screen.blit(overlay, (0, 0))  # Apply the semi-transparent overlay
+        screen.blit(overlay, (0, 0))
 
         player.draw(screen)
         # Draw the level

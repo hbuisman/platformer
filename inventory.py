@@ -59,6 +59,26 @@ CHARACTERS = [
     }
 ]
 
+# Add metadata for tooltips
+ITEM_META = {
+    "platform": {
+        "name": "Stone Platform",
+        "description": "A sturdy stone platform for steady footing.",
+    },
+    "slide": {
+        "name": "Slide Platform",
+        "description": "Slide down to have more fun!",
+    },
+    "trampoline": {
+        "name": "Trampoline",
+        "description": "Bounce into the air and reach higher places.",
+    },
+    "portal": {
+        "name": "Portal",
+        "description": "Instantly travel between two linked points.",
+    },
+}
+
 class InventoryPanel:
     def __init__(self, screen_width, screen_height):
         self.width = 200
@@ -69,6 +89,9 @@ class InventoryPanel:
 
         # Keep track of the icon currently being dragged (None if none)
         self.dragging_icon = None
+
+        # Track which icon is hovered
+        self.hovered_icon = None
 
         # Scale portrait images
         for char in CHARACTERS:
@@ -103,12 +126,31 @@ class InventoryPanel:
                     )
                     self.textures[icon["type"]] = scaled
 
+        # Center each icon horizontally in the panel
+        for icon in ICONS:
+            old_y = icon["rect"].y
+            icon["rect"].x = (self.width - icon["rect"].width) // 2
+            icon["rect"].y = old_y
+
     def toggle(self, screen_width):
         self.open = not self.open
         if self.open:
             self.goal_x = screen_width - self.width
         else:
             self.goal_x = screen_width
+
+    def update_icon_hover_states(self, mouse_pos):
+        """Check if the mouse is hovering any icon (not dragged)."""
+        if not self.dragging_icon:
+            self.hovered_icon = None
+            panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
+            if panel_rect.collidepoint(*mouse_pos):
+                for icon in ICONS:
+                    abs_rect = icon["rect"].copy()
+                    abs_rect.x += self.x
+                    if abs_rect.collidepoint(mouse_pos):
+                        self.hovered_icon = icon
+                        break
 
     def update_character_hover_states(self, mouse_pos):
         """Update hover states and cursor based on mouse position"""
@@ -129,15 +171,62 @@ class InventoryPanel:
             pygame.mouse.set_cursor(DEFAULT_CURSOR)
 
     def update(self):
-        # Animate panel sliding in/out
+        # Animate panel sliding in/out more quickly
+        step = 15
         if self.x < self.goal_x:
-            self.x += min(10, self.goal_x - self.x)
+            self.x += min(step, self.goal_x - self.x)
         elif self.x > self.goal_x:
-            self.x -= min(10, self.x - self.goal_x)
+            self.x -= min(step, self.x - self.goal_x)
         
-        # Update hover states
+        # Update hover states for icons & characters
         if self.open:
-            self.update_character_hover_states(pygame.mouse.get_pos())
+            mouse_pos = pygame.mouse.get_pos()
+            self.update_icon_hover_states(mouse_pos)
+            self.update_character_hover_states(mouse_pos)
+
+    def draw_tooltip(self, surface, mouse_pos):
+        """Draw a tooltip with item name/description if hovered."""
+        if not self.hovered_icon:
+            return
+        item_type = self.hovered_icon["type"]
+        meta = ITEM_META.get(item_type, {})
+        if "name" not in meta:
+            return
+        name_txt = meta["name"]
+        desc_txt = meta.get("description", "")
+        
+        # Create surfaces for text
+        font = pygame.font.SysFont(None, 24)
+        name_surf = font.render(name_txt, True, (255, 255, 255))
+        desc_surf = font.render(desc_txt, True, (200, 200, 200))
+        
+        # Decide tooltip size
+        padding = 8
+        width = max(name_surf.get_width(), desc_surf.get_width()) + 2*padding
+        height = name_surf.get_height() + desc_surf.get_height() + 3*padding
+        
+        # Place tooltip to the left of the mouse cursor, with small vertical offset
+        tooltip_rect = pygame.Rect(0, 0, width, height)
+        tooltip_rect.right = mouse_pos[0] - 16
+        tooltip_rect.top = mouse_pos[1] + 16
+        
+        # Clamp tooltip so it doesn't go offscreen
+        screen_w, screen_h = surface.get_size()
+        if tooltip_rect.left < 0:
+            tooltip_rect.left = 0
+        if tooltip_rect.top < 0:
+            tooltip_rect.top = 0
+        if tooltip_rect.right > screen_w:
+            tooltip_rect.right = screen_w
+        if tooltip_rect.bottom > screen_h:
+            tooltip_rect.bottom = screen_h
+        
+        pygame.draw.rect(surface, (40, 40, 40), tooltip_rect, border_radius=5)
+        pygame.draw.rect(surface, (180, 180, 180), tooltip_rect, 1, border_radius=5)
+        
+        surface.blit(name_surf, (tooltip_rect.x + padding, tooltip_rect.y + padding))
+        surface.blit(desc_surf, (tooltip_rect.x + padding, 
+                                 tooltip_rect.y + padding + name_surf.get_height()))
 
     def draw(self, surface):
         # Create a surface to draw the semi-transparent panel
@@ -172,12 +261,19 @@ class InventoryPanel:
             rect_copy = icon["rect"].copy()
             rect_copy.x += self.x
             
-            # Draw the texture for all items (slides now included)
-            surface.blit(self.textures[icon["type"]], rect_copy)
+            if icon == self.hovered_icon and not self.dragging_icon:
+                # Use the same magenta hue as with drag for consistent UX
+                hover_texture = self.textures[icon["type"]].copy()
+                overlay = pygame.Surface(hover_texture.get_size(), pygame.SRCALPHA)
+                overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
+                hover_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                surface.blit(hover_texture, rect_copy)
+            else:
+                # Draw normal texture
+                surface.blit(self.textures[icon["type"]], rect_copy)
             
-            # Add a subtle border around the icon
-            pygame.draw.rect(surface, (100, 100, 100), rect_copy, 1)
-        
+            # Remove border – no more pygame.draw.rect(...) around icons
+
         # Draw character portraits with borders
         for char in CHARACTERS:
             rect_copy = char["rect"].copy()
@@ -203,6 +299,10 @@ class InventoryPanel:
             overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
             ghost_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
             surface.blit(ghost_texture, draw_rect)
+
+        # Finally, draw tooltip if hovering
+        mouse_pos = pygame.mouse.get_pos()
+        self.draw_tooltip(surface, mouse_pos)
 
     def handle_event(self, event, level, player):
         # Only process if we are open
