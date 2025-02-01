@@ -62,8 +62,8 @@ class Level:
         self.portals = []  # Will store Portal objects
         self.next_portal_id = 1
 
-        # For dragging logic:
-        self.dragging_item = None  # Will hold a reference to whichever item (Rect or SlidePlatform) is being dragged
+        # Add dragging state
+        self.dragging_item = None
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -101,36 +101,46 @@ class Level:
         """Give this method a list of pygame events. Handles click-dragging of items."""
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 3:  # right-click -> remove item if clicked
+                if event.button == 3:  # right-click -> remove item
                     mouse_x, mouse_y = event.pos
                     item = self.find_clicked_item(mouse_x, mouse_y)
                     if item:
                         self.remove_item(item)
-                        continue
-                if event.button == 1:
+                elif event.button == 1:  # left-click -> start drag
                     mouse_x, mouse_y = event.pos
                     clicked_item = self.find_clicked_item(mouse_x, mouse_y)
                     if clicked_item:
                         self.dragging_item = clicked_item
-                        # Compute offset from top-left corner
+                        # Store offset from mouse to item origin
                         if isinstance(clicked_item, Portal):
-                            self.drag_offset_x = mouse_x - clicked_item.rect.x
-                            self.drag_offset_y = mouse_y - clicked_item.rect.y
+                            self.drag_offset_x = clicked_item.rect.x - mouse_x
+                            self.drag_offset_y = clicked_item.rect.y - mouse_y
                         elif isinstance(clicked_item, pygame.Rect):
-                            self.drag_offset_x = mouse_x - clicked_item.x
-                            self.drag_offset_y = mouse_y - clicked_item.y
+                            self.drag_offset_x = clicked_item.x - mouse_x
+                            self.drag_offset_y = clicked_item.y - mouse_y
                         elif isinstance(clicked_item, SlidePlatform):
-                            # SlidePlatform: store offset from x1,y1
-                            self.drag_offset_x = mouse_x - clicked_item.x1
-                            self.drag_offset_y = mouse_y - clicked_item.y1
+                            self.drag_offset_x = clicked_item.x1 - mouse_x
+                            self.drag_offset_y = clicked_item.y1 - mouse_y
 
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging_item:
                     mouse_x, mouse_y = event.pos
-                    self.drag_item_to(mouse_x, mouse_y)
+                    # Update position based on stored offset
+                    if isinstance(self.dragging_item, Portal):
+                        self.dragging_item.rect.x = mouse_x + self.drag_offset_x
+                        self.dragging_item.rect.y = mouse_y + self.drag_offset_y
+                    elif isinstance(self.dragging_item, pygame.Rect):
+                        self.dragging_item.x = mouse_x + self.drag_offset_x
+                        self.dragging_item.y = mouse_y + self.drag_offset_y
+                    elif isinstance(self.dragging_item, SlidePlatform):
+                        dx = mouse_x + self.drag_offset_x - self.dragging_item.x1
+                        dy = mouse_y + self.drag_offset_y - self.dragging_item.y1
+                        self.dragging_item.x1 += dx
+                        self.dragging_item.y1 += dy
+                        self.dragging_item.x2 += dx
+                        self.dragging_item.y2 += dy
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                # Stop dragging
                 self.dragging_item = None
 
     def find_clicked_item(self, mouse_x, mouse_y):
@@ -153,24 +163,6 @@ class Level:
                 return portal
         return None
 
-    def drag_item_to(self, mouse_x, mouse_y):
-        """Given a mouse position, move the currently dragged item to that position."""
-        if isinstance(self.dragging_item, pygame.Rect):
-            # Move rect so the top-left follows the mouse offset
-            self.dragging_item.x = mouse_x - self.drag_offset_x
-            self.dragging_item.y = mouse_y - self.drag_offset_y
-        elif isinstance(self.dragging_item, SlidePlatform):
-            # Move the line by offset
-            dx = (mouse_x - self.drag_offset_x) - self.dragging_item.x1
-            dy = (mouse_y - self.drag_offset_y) - self.dragging_item.y1
-            self.dragging_item.x1 += dx
-            self.dragging_item.y1 += dy
-            self.dragging_item.x2 += dx
-            self.dragging_item.y2 += dy
-        elif isinstance(self.dragging_item, Portal):
-            self.dragging_item.rect.x = mouse_x - self.drag_offset_x
-            self.dragging_item.rect.y = mouse_y - self.drag_offset_y
-
     def draw(self, surface):
         # Draw ground (first platform)
         ground = self.platforms[0]
@@ -179,26 +171,39 @@ class Level:
         # Draw other platforms
         for platform in self.platforms[1:]:
             if platform == self.dragging_item:
-                # Draw highlighted platform when dragging
-                pygame.draw.rect(surface, (255, 0, 255), platform, border_radius=3)
+                # Draw platform with magenta tint when dragging
+                texture = self.stone_texture.copy()
+                overlay = pygame.Surface(texture.get_size(), pygame.SRCALPHA)
+                overlay.fill((255, 0, 255, 128))
+                texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                # Tile the tinted texture
+                for x in range(platform.x, platform.x + platform.width, texture.get_width()):
+                    surface.blit(texture, (x, platform.y))
             else:
-                # Draw stone texture
+                # Draw stone texture normally
                 self.draw_platform_with_texture(surface, platform)
 
         # Draw slides
         for slide in self.slides:
             if slide == self.dragging_item:
-                slide.draw(surface, highlight=True)
+                # Draw magenta-tinted slide when dragging
+                pygame.draw.line(surface, (255, 0, 255, 180), 
+                               (slide.x1, slide.y1), 
+                               (slide.x2, slide.y2), 5)
             else:
                 slide.draw(surface)
 
         # Draw trampolines
         for tramp in self.trampolines:
             if tramp == self.dragging_item:
-                # Draw highlighted trampoline when dragging
-                pygame.draw.rect(surface, (255, 0, 255), tramp, border_radius=3)
+                # Draw trampoline with magenta tint when dragging
+                texture = self.tramp_texture.copy()
+                overlay = pygame.Surface(texture.get_size(), pygame.SRCALPHA)
+                overlay.fill((255, 0, 255, 128))
+                texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                x = tramp.x + (tramp.width - texture.get_width()) // 2
+                surface.blit(texture, (x, tramp.y))
             else:
-                # Draw trampoline texture
                 self.draw_trampoline_with_texture(surface, tramp)
 
         # Draw portals

@@ -207,7 +207,7 @@ class InventoryPanel:
             # Draw portrait inside border
             surface.blit(char["portrait"], rect_copy)
         
-        # If dragging, draw ghost
+        # If dragging, draw ghost with magenta tint
         if self.dragging_icon:
             mx, my = pygame.mouse.get_pos()
             w = self.dragging_icon["rect"].width
@@ -215,25 +215,32 @@ class InventoryPanel:
             draw_rect = pygame.Rect(mx - w//2, my - h//2, w, h)
             
             if self.dragging_icon.get("is_slide"):
-                # Draw semi-transparent slide preview
-                start_pos = (draw_rect.left + 10, draw_rect.top + 10)
-                end_pos = (draw_rect.right - 10, draw_rect.bottom - 10)
-                # Draw with some transparency
+                # Draw magenta-tinted slide preview
                 ghost_surface = pygame.Surface((w, h), pygame.SRCALPHA)
-                pygame.draw.line(ghost_surface, (0, 200, 0, 128), 
+                # Draw line in magenta
+                pygame.draw.line(ghost_surface, (255, 0, 255, 180), 
                                (10, 10), (w-10, h-10), 5)
-                # Add semi-transparent arrow
+                # Add magenta arrow
+                arrow_length = 15
+                dx = w-20
+                dy = h-20
+                length = (dx*dx + dy*dy)**0.5
+                dx, dy = dx/length, dy/length
                 arrow_p1 = (w-10 - arrow_length*dx - arrow_length*dy,
                            h-10 - arrow_length*dy + arrow_length*dx)
                 arrow_p2 = (w-10 - arrow_length*dx + arrow_length*dy,
                            h-10 - arrow_length*dy - arrow_length*dx)
-                pygame.draw.polygon(ghost_surface, (0, 200, 0, 128), 
+                pygame.draw.polygon(ghost_surface, (255, 0, 255, 180), 
                                   [(w-10, h-10), arrow_p1, arrow_p2])
                 surface.blit(ghost_surface, draw_rect)
             else:
-                # Draw semi-transparent texture for non-slide items
+                # Create magenta-tinted version of texture
                 ghost_texture = self.textures[self.dragging_icon["type"]].copy()
-                ghost_texture.set_alpha(128)
+                # Create magenta overlay
+                overlay = pygame.Surface(ghost_texture.get_size(), pygame.SRCALPHA)
+                overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
+                # Apply overlay to ghost texture
+                ghost_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 surface.blit(ghost_texture, draw_rect)
 
     def handle_event(self, event, level, player):
