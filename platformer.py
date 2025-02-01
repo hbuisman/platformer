@@ -130,10 +130,14 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                if exit_dialog is None:
-                    exit_dialog = ExitDialog()
+                # If the inventory is open, close it; otherwise show/hide exit dialog
+                if inventory.open:
+                    inventory.toggle(SCREEN_WIDTH)
                 else:
-                    exit_dialog = None
+                    if exit_dialog is None:
+                        exit_dialog = ExitDialog()
+                    else:
+                        exit_dialog = None
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_i:
                 if exit_dialog is None:
                     inventory.toggle(SCREEN_WIDTH)
