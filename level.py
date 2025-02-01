@@ -222,27 +222,27 @@ class Level:
         if self.dragging_item == item:
             self.dragging_item = None
 
-    def add_platform(self):
-        # Create a new platform near the top left, for example
-        new_rect = pygame.Rect(50, 50, 150, 20)
+    def add_platform(self, x, y):
+        # Create a new platform at the mouse position
+        new_rect = pygame.Rect(x - 75, y - 10, 150, 20)  # Center on mouse
         self.platforms.append(new_rect)
 
-    def add_slide(self):
-        # Create a new Slide from (100,100) to (200,200)
-        new_slide = SlidePlatform(100, 100, 200, 200)
+    def add_slide(self, x, y):
+        # Create a new Slide at mouse position, angled down-right
+        new_slide = SlidePlatform(x, y, x + 100, y + 100)
         self.slides.append(new_slide)
 
-    def add_trampoline(self):
-        # Create a new trampoline near the top left
-        new_tramp = pygame.Rect(100, 150, self.tramp_width, 40)  # Using stored width with correct ratio
+    def add_trampoline(self, x, y):
+        # Create a new trampoline at mouse position
+        new_tramp = pygame.Rect(x - self.tramp_width//2, y - 20, self.tramp_width, 40)
         self.trampolines.append(new_tramp)
 
-    def add_portal(self):
+    def add_portal(self, x, y):
         """Add a new portal pair (entrance and exit)"""
-        # Create entrance
-        entrance = Portal(50, 50, is_entrance=True, portal_id=self.next_portal_id)
-        # Create exit slightly offset
-        exit_portal = Portal(150, 50, is_entrance=False, portal_id=self.next_portal_id)
+        # Create entrance at mouse position
+        entrance = Portal(x - 15, y - 30, is_entrance=True, portal_id=self.next_portal_id)
+        # Create exit slightly offset to the right
+        exit_portal = Portal(x + 50, y - 30, is_entrance=False, portal_id=self.next_portal_id)
         
         self.portals.extend([entrance, exit_portal])
         self.next_portal_id += 1

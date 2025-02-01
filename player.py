@@ -3,11 +3,11 @@ import pygame
 GRAVITY = 0.5
 PLAYER_SPEED = 5
 JUMP_FORCE = 10
-RED = (255, 0, 0)
 
 class Player:
     def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
+        # Make the player twice as big (80x80 instead of 40x40)
+        self.rect = pygame.Rect(x, y, width * 2, height * 2)
         self.x_velocity = 0
         self.y_velocity = 0
         
@@ -19,8 +19,19 @@ class Player:
         # New flag to track whether player is on the slide
         self.on_slide = False
         
+        # Load player image and scale it to match the new collision rect
+        self.image = pygame.image.load("images/player_big.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (width * 2, height * 2))
+        
+        # Create flipped version of the image
+        self.image_right = self.image
+        self.image_left = pygame.transform.flip(self.image, True, False)
+        
+        # Track which direction player is facing
+        self.facing_right = True
+        
         # Load the "ouch.wav" sound when the player object is created
-        self.ouch_sound = pygame.mixer.Sound("sounds/ouch.wav")
+        self.ouch_sound = pygame.mixer.Sound("sounds/big_player_ouch.wav")
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -29,8 +40,10 @@ class Player:
         if not self.on_slide:
             if keys[pygame.K_LEFT]:
                 self.x_velocity = -PLAYER_SPEED
+                self.facing_right = False
             elif keys[pygame.K_RIGHT]:
                 self.x_velocity = PLAYER_SPEED
+                self.facing_right = True
             else:
                 self.x_velocity = 0
         
@@ -145,7 +158,9 @@ class Player:
         self.y_velocity = abs(self.x_velocity * slope)
         
     def draw(self, surface):
-        pygame.draw.rect(surface, RED, self.rect)
+        # Use the appropriate image based on direction
+        image_to_draw = self.image_right if self.facing_right else self.image_left
+        surface.blit(image_to_draw, self.rect)
 
     def check_trampolines(self, trampolines):
         for tramp in trampolines:

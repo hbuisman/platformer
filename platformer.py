@@ -35,7 +35,7 @@ clock = pygame.time.Clock()
 
 def main():
     # Create a player and a new Level instance
-    player = Player(x=100, y=300, width=40, height=40)
+    player = Player(x=100, y=300, width=40, height=40)  # width/height will be doubled in Player.__init__
     level = Level()
     inventory = InventoryPanel(WIDTH, HEIGHT)
     

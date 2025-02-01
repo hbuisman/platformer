@@ -78,12 +78,12 @@ class InventoryPanel:
                 panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
                 if not panel_rect.collidepoint(mx, my):
                     if self.dragging_icon["type"] == "platform":
-                        level.add_platform()
+                        level.add_platform(mx, my)
                     elif self.dragging_icon["type"] == "slide":
-                        level.add_slide()
+                        level.add_slide(mx, my)
                     elif self.dragging_icon["type"] == "trampoline":
-                        level.add_trampoline()
+                        level.add_trampoline(mx, my)
                     elif self.dragging_icon["type"] == "portal":
-                        level.add_portal()
+                        level.add_portal(mx, my)
                 # End drag
                 self.dragging_icon = None 
