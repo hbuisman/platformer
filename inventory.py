@@ -7,10 +7,30 @@ HAND_CURSOR = pygame.SYSTEM_CURSOR_HAND
 # Represent each inventory "icon" as a small box
 # We'll store "type", "color", and a rect relative to the panel
 ICONS = [
-    {"type": "platform",   "color": (0, 0, 255),   "rect": pygame.Rect(10,  50, 40, 40)},
-    {"type": "slide",      "color": (0, 200, 0),   "rect": pygame.Rect(10, 110, 40, 40)},
-    {"type": "trampoline", "color": (200, 0, 200), "rect": pygame.Rect(10, 170, 40, 40)},
-    {"type": "portal",     "color": (255, 165, 0), "rect": pygame.Rect(10, 230, 40, 40)},
+    {
+        "type": "platform",
+        "color": (0, 0, 255),  # keep color as fallback
+        "rect": pygame.Rect(10, 50, 150, 20),  # wider to match stone texture
+        "image_path": "images/stone-platform.png"
+    },
+    {
+        "type": "slide",
+        "color": (0, 200, 0),
+        "rect": pygame.Rect(10, 110, 100, 100),  # square area for slide preview
+        "is_slide": True  # flag to indicate this needs special drawing
+    },
+    {
+        "type": "trampoline",
+        "color": (200, 0, 200),
+        "rect": pygame.Rect(10, 230, 73, 40),  # match trampoline dimensions from level.py
+        "image_path": "images/trampoline.png"
+    },
+    {
+        "type": "portal",
+        "color": (255, 165, 0),
+        "rect": pygame.Rect(10, 290, 60, 120),  # match portal dimensions
+        "image_path": "images/portal_entry.png"
+    },
 ]
 
 # Colors for character selection buttons
@@ -54,6 +74,34 @@ class InventoryPanel:
         for char in CHARACTERS:
             char["portrait"] = pygame.transform.smoothscale(char["portrait"], 
                                                           (PORTRAIT_SIZE, PORTRAIT_SIZE))
+
+        # Load and scale textures for inventory icons
+        self.textures = {}
+        for icon in ICONS:
+            if "image_path" in icon:  # Only load if image_path exists
+                if icon["type"] == "platform":
+                    # Load original texture
+                    original = pygame.image.load(icon["image_path"]).convert_alpha()
+                    # Scale height to match platform height (20px)
+                    height_ratio = 20 / original.get_height()
+                    block_width = int(original.get_width() * height_ratio)
+                    block_height = 20
+                    scaled_block = pygame.transform.smoothscale(original, (block_width, block_height))
+                    
+                    # Create surface for the full platform width
+                    platform_surface = pygame.Surface((icon["rect"].width, block_height), pygame.SRCALPHA)
+                    # Tile the block texture horizontally
+                    for x in range(0, icon["rect"].width, block_width):
+                        platform_surface.blit(scaled_block, (x, 0))
+                    self.textures[icon["type"]] = platform_surface
+                else:
+                    # Handle other textures normally
+                    original = pygame.image.load(icon["image_path"]).convert_alpha()
+                    scaled = pygame.transform.smoothscale(
+                        original, 
+                        (icon["rect"].width, icon["rect"].height)
+                    )
+                    self.textures[icon["type"]] = scaled
 
     def toggle(self, screen_width):
         self.open = not self.open
@@ -119,11 +167,33 @@ class InventoryPanel:
         # Now blit this panel_surf onto the main surface at (self.x, 0)
         surface.blit(panel_surf, (self.x, 0))
         
-        # Draw inventory icons (colored boxes)
+        # Draw inventory icons
         for icon in ICONS:
             rect_copy = icon["rect"].copy()
             rect_copy.x += self.x
-            pygame.draw.rect(surface, icon["color"], rect_copy)
+            
+            if icon.get("is_slide"):
+                # Draw slide preview as a diagonal line with some thickness
+                start_pos = (rect_copy.left + 10, rect_copy.top + 10)
+                end_pos = (rect_copy.right - 10, rect_copy.bottom - 10)
+                pygame.draw.line(surface, (0, 200, 0), start_pos, end_pos, 5)
+                # Add arrow at the end to show direction
+                arrow_length = 15
+                dx = end_pos[0] - start_pos[0]
+                dy = end_pos[1] - start_pos[1]
+                length = (dx*dx + dy*dy)**0.5
+                dx, dy = dx/length, dy/length
+                arrow_p1 = (end_pos[0] - arrow_length*dx - arrow_length*dy,
+                           end_pos[1] - arrow_length*dy + arrow_length*dx)
+                arrow_p2 = (end_pos[0] - arrow_length*dx + arrow_length*dy,
+                           end_pos[1] - arrow_length*dy - arrow_length*dx)
+                pygame.draw.polygon(surface, (0, 200, 0), [end_pos, arrow_p1, arrow_p2])
+            else:
+                # Draw the texture for non-slide items
+                surface.blit(self.textures[icon["type"]], rect_copy)
+            
+            # Add a subtle border around the icon
+            pygame.draw.rect(surface, (100, 100, 100), rect_copy, 1)
         
         # Draw character portraits with borders
         for char in CHARACTERS:
@@ -137,15 +207,34 @@ class InventoryPanel:
             # Draw portrait inside border
             surface.blit(char["portrait"], rect_copy)
         
-        # If we are dragging an icon, draw a ghost of it at the current mouse position
+        # If dragging, draw ghost
         if self.dragging_icon:
             mx, my = pygame.mouse.get_pos()
             w = self.dragging_icon["rect"].width
             h = self.dragging_icon["rect"].height
-            color = self.dragging_icon["color"]
-            # Center the drag icon on the mouse
             draw_rect = pygame.Rect(mx - w//2, my - h//2, w, h)
-            pygame.draw.rect(surface, color, draw_rect, border_radius=5)
+            
+            if self.dragging_icon.get("is_slide"):
+                # Draw semi-transparent slide preview
+                start_pos = (draw_rect.left + 10, draw_rect.top + 10)
+                end_pos = (draw_rect.right - 10, draw_rect.bottom - 10)
+                # Draw with some transparency
+                ghost_surface = pygame.Surface((w, h), pygame.SRCALPHA)
+                pygame.draw.line(ghost_surface, (0, 200, 0, 128), 
+                               (10, 10), (w-10, h-10), 5)
+                # Add semi-transparent arrow
+                arrow_p1 = (w-10 - arrow_length*dx - arrow_length*dy,
+                           h-10 - arrow_length*dy + arrow_length*dx)
+                arrow_p2 = (w-10 - arrow_length*dx + arrow_length*dy,
+                           h-10 - arrow_length*dy - arrow_length*dx)
+                pygame.draw.polygon(ghost_surface, (0, 200, 0, 128), 
+                                  [(w-10, h-10), arrow_p1, arrow_p2])
+                surface.blit(ghost_surface, draw_rect)
+            else:
+                # Draw semi-transparent texture for non-slide items
+                ghost_texture = self.textures[self.dragging_icon["type"]].copy()
+                ghost_texture.set_alpha(128)
+                surface.blit(ghost_texture, draw_rect)
 
     def handle_event(self, event, level, player):
         # Only process if we are open
