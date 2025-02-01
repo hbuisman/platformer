@@ -2,22 +2,38 @@ import pygame
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
-ORANGE = (255, 165, 0)  # Portal entrance color
-BLUE_PORTAL = (0, 191, 255)  # Portal exit color
 
 class Portal:
     def __init__(self, x, y, is_entrance=True, portal_id=1):
-        self.rect = pygame.Rect(x, y, 30, 60)  # Taller than wide
+        # Create the sprite
+        if is_entrance:
+            self.image = pygame.image.load('images/portal_entry.png').convert_alpha()
+            # Flip entry portal horizontally
+            self.image = pygame.transform.flip(self.image, True, False)
+        else:
+            self.image = pygame.image.load('images/portal_exit.png').convert_alpha()
+            # Flip exit portal horizontally
+            self.image = pygame.transform.flip(self.image, True, False)
+        
+        # Scale the portal image to twice the original size (60x120 instead of 30x60)
+        self.image = pygame.transform.smoothscale(self.image, (60, 120))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        
         self.is_entrance = is_entrance
         self.portal_id = portal_id
         self.font = pygame.font.SysFont(None, 24)
     
     def draw(self, surface, is_dragging=False):
-        # Draw portal oval/rectangle
-        color = ORANGE if self.is_entrance else BLUE_PORTAL
         if is_dragging:
-            color = (255, 0, 255)  # magenta when dragging
-        pygame.draw.ellipse(surface, color, self.rect)
+            # Create a copy of the image with magenta tint for dragging
+            tinted = self.image.copy()
+            tinted.fill((255, 0, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
+            surface.blit(tinted, self.rect)
+        else:
+            # Draw the normal portal sprite
+            surface.blit(self.image, self.rect)
         
         # Draw portal number
         text = self.font.render(str(self.portal_id), True, (255, 255, 255))

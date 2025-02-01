@@ -102,6 +102,17 @@ class ExitDialog:
         surface.blit(self.yes_text, yes_text_rect)
         surface.blit(self.no_text, no_text_rect)
 
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, x, y, is_entry=True):
+        super().__init__()
+        if is_entry:
+            self.image = pygame.image.load('images/portal_entry.png').convert_alpha()
+        else:
+            self.image = pygame.image.load('images/portal_exit.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
 def main():
     # Create a player and a new Level instance
     player = Player(x=100, y=300, width=40, height=40)  # width/height will be doubled in Player.__init__
