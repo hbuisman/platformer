@@ -1,4 +1,5 @@
 import pygame
+from slide import SlidePlatform, SlidePhysics
 
 GRAVITY = 0.5
 PLAYER_SPEED = 5
@@ -118,6 +119,9 @@ class Player:
     def check_slides(self, slides):
         # Reset the on_slide flag each frame; we'll set it True if we find a slide
         self.on_slide = False
+        # Debug message to always show slide state
+        self.slide_debug_msg = "Not on slide"
+        
         for slide in slides:
             if self.is_on_slide(slide):
                 self.align_on_slide(slide)
@@ -125,45 +129,30 @@ class Player:
                 break  # already aligned on one slide
 
     def is_on_slide(self, slide):
-        # Check if player's bottom center is within the slide's x-range
-        bottom_center_x = self.rect.centerx
-        min_x = min(slide.x1, slide.x2)
-        max_x = max(slide.x1, slide.x2)
-        
-        if bottom_center_x < min_x or bottom_center_x > max_x:
+        if not slide.contains_point(self.rect.centerx, self.rect.bottom):
             return False
-        
-        # Calculate the y-value on the slide for that x
-        dx = slide.x2 - slide.x1
-        dy = slide.y2 - slide.y1
-        if dx == 0:  # vertical line edge case
+            
+        physics = slide.compute_physics(self.rect.centerx, self.rect.bottom)
+        if not physics:
             return False
+            
+        # Update debug message
+        self.slide_debug_msg = f"On slide: y={physics.alignment_y:.2f}, vel=({physics.velocity_x:.1f},{physics.velocity_y:.1f})"
         
-        slope = dy / dx
-        y_on_slide = slide.y1 + slope * (bottom_center_x - slide.x1)
-        
-        # If player's bottom is close to y_on_slide
-        if abs(self.rect.bottom - y_on_slide) < 5:
-            return True
-        
-        return False
+        # If player's bottom is close to computed alignment y
+        return abs(self.rect.bottom - physics.alignment_y) < 8
 
     def align_on_slide(self, slide):
-        dx = slide.x2 - slide.x1
-        dy = slide.y2 - slide.y1
-        slope = dy / dx if dx != 0 else 0
-
-        # Reposition the player so bottom is exactly on the slide
-        bottom_center_x = self.rect.centerx
-        y_on_slide = slide.y1 + slope * (bottom_center_x - slide.x1)
-        self.rect.bottom = y_on_slide
-
-        # Determine direction: if the slide is drawn from right to left, x2 < x1 => move left
-        slide_direction = -1 if slide.x2 < slide.x1 else 1  
-        self.x_velocity = slide_direction * 2
-        # For downward effect, match slope magnitude on y_velocity
-        # Using abs(...) so it always slides "down" the slope
-        self.y_velocity = abs(self.x_velocity * slope)
+        physics = slide.compute_physics(self.rect.centerx, self.rect.bottom)
+        if not physics:
+            return
+            
+        # Align player with slide
+        self.rect.bottom = physics.alignment_y
+        
+        # Set velocities from physics
+        self.x_velocity = physics.velocity_x
+        self.y_velocity = physics.velocity_y
 
     def draw(self, surface):
         # Use the appropriate image based on direction
@@ -227,4 +216,4 @@ class Player:
             # Teleport to center
             self.rect.center = (screen_width // 2, screen_height // 2)
             # Start a brief timer to show the message
-            self.disappeared_timer = 120  # ~2 seconds at 60 FPS 
+            self.disappeared_timer = 120  # ~2 seconds at 60 FPS

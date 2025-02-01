@@ -179,16 +179,6 @@ def main():
         if exit_dialog is not None:
             exit_dialog.draw(screen)
 
-        # If player.disappeared_timer is active, show the message
-        if getattr(player, "disappeared_timer", 0) > 0:
-            # Decrement the timer
-            player.disappeared_timer -= 1
-            # Draw text in center or top of screen
-            font = pygame.font.SysFont(None, 40)
-            text_surf = font.render("oh oh, you disappeared!", True, (255, 0, 0))
-            text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, 100))
-            screen.blit(text_surf, text_rect)
-        
         pygame.display.flip()
     
     pygame.quit()

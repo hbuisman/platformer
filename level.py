@@ -1,5 +1,6 @@
 import pygame
 import math
+from slide import SlidePlatform  # Add this at the top with other imports
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -98,29 +99,35 @@ class Level:
         ]
 
     def handle_mouse_events(self, events):
-        """Give this method a list of pygame events. Handles click-dragging of items."""
+        # Always get current mouse position at the start
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 3:  # right-click -> remove item
-                    mouse_x, mouse_y = event.pos
                     item = self.find_clicked_item(mouse_x, mouse_y)
                     if item:
                         self.remove_item(item)
-                elif event.button == 1:  # left-click -> start drag
-                    mouse_x, mouse_y = event.pos
-                    clicked_item = self.find_clicked_item(mouse_x, mouse_y)
-                    if clicked_item:
-                        self.dragging_item = clicked_item
-                        # Store offset from mouse to item origin
-                        if isinstance(clicked_item, Portal):
-                            self.drag_offset_x = clicked_item.rect.x - mouse_x
-                            self.drag_offset_y = clicked_item.rect.y - mouse_y
-                        elif isinstance(clicked_item, pygame.Rect):
-                            self.drag_offset_x = clicked_item.x - mouse_x
-                            self.drag_offset_y = clicked_item.y - mouse_y
-                        elif isinstance(clicked_item, SlidePlatform):
-                            self.drag_offset_x = clicked_item.x1 - mouse_x
-                            self.drag_offset_y = clicked_item.y1 - mouse_y
+                elif event.button == 1:  # left-click
+                    # First check for slide flipping
+                    for slide in self.slides:
+                        if slide.handle_click(event.pos):
+                            break  # Stop checking once a click is handled
+                    # If no slide was flipped, handle dragging
+                    else:
+                        clicked_item = self.find_clicked_item(mouse_x, mouse_y)
+                        if clicked_item:
+                            self.dragging_item = clicked_item
+                            # Store offset from mouse to item origin
+                            if isinstance(clicked_item, Portal):
+                                self.drag_offset_x = clicked_item.rect.x - mouse_x
+                                self.drag_offset_y = clicked_item.rect.y - mouse_y
+                            elif isinstance(clicked_item, pygame.Rect):
+                                self.drag_offset_x = clicked_item.x - mouse_x
+                                self.drag_offset_y = clicked_item.y - mouse_y
+                            elif isinstance(clicked_item, SlidePlatform):
+                                self.drag_offset_x = clicked_item.start_x - mouse_x
+                                self.drag_offset_y = clicked_item.start_y - mouse_y
 
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging_item:
@@ -135,19 +142,27 @@ class Level:
                         self.dragging_item.x = dx
                         self.dragging_item.y = dy
                     elif isinstance(self.dragging_item, SlidePlatform):
-                        # Move the slide endpoints
                         slide = self.dragging_item
-                        delta_x = dx - slide.x1
-                        delta_y = dy - slide.y1
-                        slide.x1 += delta_x
-                        slide.y1 += delta_y
-                        slide.x2 += delta_x
-                        slide.y2 += delta_y
-                        # Update the texture rect so the image moves
-                        slide.update_rect_position()
+                        delta_x = dx - slide.start_x
+                        delta_y = dy - slide.start_y
+                        slide.start_x += delta_x
+                        slide.start_y += delta_y
+                        slide.end_x += delta_x
+                        slide.end_y += delta_y
+                        slide.rect = slide._calculate_rect()
+                        slide._update_flip_icon_position()
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 self.dragging_item = None
+
+        # After processing events, handle hovering
+        if not self.dragging_item:
+            hovered_slide = self.find_clicked_item(mouse_x, mouse_y)
+            if isinstance(hovered_slide, SlidePlatform):
+                hovered_slide.hover_timer += 1
+            for s in self.slides:
+                if s is not hovered_slide:
+                    s.hover_timer = 0
 
     def find_clicked_item(self, mouse_x, mouse_y):
         """Check if mouse_x, mouse_y is inside a Rect or near a SlidePlatform."""
@@ -159,9 +174,9 @@ class Level:
         for t in self.trampolines:
             if t.collidepoint(mouse_x, mouse_y):
                 return t
-        # Check slides (treat them as lines, see if mouse is close)
+        # Check slides (use new contains_point method)
         for s in self.slides:
-            if s.point_is_near(mouse_x, mouse_y, threshold=8):
+            if s.contains_point(mouse_x, mouse_y, threshold=8):
                 return s
         # Check portals
         for portal in self.portals:
@@ -258,8 +273,13 @@ class Level:
         self.platforms.append(new_rect)
 
     def add_slide(self, x, y):
-        # Create a new Slide at (x, y) that slopes top-right -> bottom-left 
-        new_slide = SlidePlatform(x, y, x - 100, y + 100)
+        # Create a new Slide at (x, y) that slopes down-right
+        new_slide = SlidePlatform(
+            start_x=x,
+            start_y=y,
+            end_x=x + 100,
+            end_y=y + 100
+        )
         self.slides.append(new_slide)
 
     def add_trampoline(self, x, y):
@@ -283,72 +303,4 @@ class Level:
             if (p.portal_id == portal.portal_id and 
                 p.is_entrance != portal.is_entrance):
                 return p
-        return None
-
-class SlidePlatform:
-    def __init__(self, x1, y1, x2, y2):
-        self.x1, self.y1 = x1, y1
-        self.x2, self.y2 = x2, y2
-
-        # Load slide texture in original orientation
-        self.texture = pygame.image.load("images/slide.png").convert_alpha()
-        
-        # Original image is 379×349; double our old height (120 px)
-        new_height = 120
-        ratio = new_height / 349
-        new_width = int(379 * ratio)
-        
-        # Scale image to keep original orientation & aspect ratio
-        self.texture = pygame.transform.smoothscale(
-            self.texture, (new_width, new_height)
-        )
-        
-        # Make the "slide_thickness" match new_height
-        self.slide_thickness = new_height
-
-        # Store rect and position it at the midpoint of the line
-        self.rect = self.texture.get_rect()
-        self.update_rect_position()
-
-    def update_rect_position(self):
-        # Center the unrotated texture on the midpoint of (x1,y1) and (x2,y2)
-        mid_x = (self.x1 + self.x2) // 2
-        mid_y = (self.y1 + self.y2) // 2
-        self.rect.center = (mid_x, mid_y)
-
-    def draw(self, surface, highlight=False):
-        # If dragging, draw a magenta-tinted version
-        if highlight:
-            tinted = self.texture.copy()
-            overlay = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
-            overlay.fill((255, 0, 255, 128))
-            tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            surface.blit(tinted, self.rect)
-        else:
-            surface.blit(self.texture, self.rect)
-
-    def point_is_near(self, mx, my, threshold=30):
-        """Check if point (mx,my) is near the slide using line-based collision."""
-        # First check if point is within the texture's bounding rect
-        if not self.rect.collidepoint(mx, my):
-            return False
-
-        # Then check distance to the line for actual "sliding" logic
-        px, py = mx, my
-        ax, ay = self.x1, self.y1
-        bx, by = self.x2, self.y2
-        
-        abx = bx - ax
-        aby = by - ay
-        apx = px - ax
-        apy = py - ay
-
-        ab_len_sq = abx**2 + aby**2
-        if ab_len_sq == 0:
-            return False
-
-        t = max(0, min(1, (apx * abx + apy * aby) / ab_len_sq))
-        projx = ax + t * abx
-        projy = ay + t * aby
-        dist_sq = (px - projx)**2 + (py - projy)**2
-        return dist_sq <= self.slide_thickness**2 
+        return None 
