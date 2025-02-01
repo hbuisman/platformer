@@ -26,9 +26,14 @@ class Portal:
 
 class Level:
     def __init__(self):
+        # Get screen dimensions for proper platform placement
+        screen = pygame.display.get_surface()
+        screen_width = screen.get_width()
+        screen_height = screen.get_height()
+        
         # You can define platforms here or load them from a file, etc.
         self.platforms = [
-            pygame.Rect(0, 750, 1200, 50),   # Floor (for 800px high window)
+            pygame.Rect(0, screen_height - 50, screen_width, 50),  # Floor at bottom of screen
             pygame.Rect(300, 600, 150, 20),  # Lower platform
             pygame.Rect(500, 500, 150, 20),  # Middle platform
             pygame.Rect(700, 450, 150, 20),  # Another one for vertical stepping
