@@ -33,6 +33,8 @@ class Player:
         
         # Load the "ouch.wav" sound when the player object is created
         self.ouch_sound = pygame.mixer.Sound("sounds/big_player_ouch.wav")
+        self.boing_sound = pygame.mixer.Sound("sounds/big_player_boing.wav")
+        self.portal_sound = pygame.mixer.Sound("sounds/big_player_portal.wav")
         
         self.width = width * 2
         self.height = height * 2
@@ -164,6 +166,8 @@ class Player:
             if self.rect.colliderect(tramp):
                 # If the player is falling down
                 if self.y_velocity > 0:
+                    # Play boing sound
+                    self.boing_sound.play()
                     # Position player on top of trampoline
                     self.rect.bottom = tramp.top
                     # Bounce higher than normal
@@ -178,9 +182,11 @@ class Player:
                 # Find the exit portal
                 exit_portal = level.find_portal_pair(portal)
                 if exit_portal:
+                    # Play portal sound
+                    self.portal_sound.play()
                     # Teleport to exit, maintaining velocity
                     self.rect.centerx = exit_portal.rect.centerx
-                    self.rect.bottom = exit_portal.rect.bottom 
+                    self.rect.bottom = exit_portal.rect.bottom
 
     def change_character(self, sprite_path, sound_path):
         """Change the player's sprite and sound"""
@@ -192,8 +198,11 @@ class Player:
         self.image_right = self.image
         self.image_left = pygame.transform.flip(self.image, True, False)
         
-        # Load new sound
-        self.ouch_sound = pygame.mixer.Sound(sound_path)
+        # Load new sounds - extract the base path to use for all sounds
+        base_sound_path = sound_path.replace("_ouch.wav", "")
+        self.ouch_sound = pygame.mixer.Sound(f"{base_sound_path}_ouch.wav")
+        self.boing_sound = pygame.mixer.Sound(f"{base_sound_path}_boing.wav")
+        self.portal_sound = pygame.mixer.Sound(f"{base_sound_path}_portal.wav")
 
     def ensure_not_below_any_platform(self, platforms):
         """If the player is inside a platform from above, place them on top and stop sliding."""

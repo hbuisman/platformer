@@ -19,6 +19,9 @@ class SlidePlatform:
         self.end_x = end_x
         self.end_y = end_y
 
+        # Initialize hover timer
+        self.hover_timer = 0
+
         # Visual properties
         self._load_textures()
         self.is_flipped = False

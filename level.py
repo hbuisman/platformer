@@ -159,9 +159,14 @@ class Level:
         if not self.dragging_item:
             hovered_slide = self.find_clicked_item(mouse_x, mouse_y)
             if isinstance(hovered_slide, SlidePlatform):
+                # Safely access/create hover_timer
+                if not hasattr(hovered_slide, 'hover_timer'):
+                    hovered_slide.hover_timer = 0
                 hovered_slide.hover_timer += 1
             for s in self.slides:
                 if s is not hovered_slide:
+                    if not hasattr(s, 'hover_timer'):
+                        s.hover_timer = 0
                     s.hover_timer = 0
 
     def find_clicked_item(self, mouse_x, mouse_y):
@@ -273,12 +278,12 @@ class Level:
         self.platforms.append(new_rect)
 
     def add_slide(self, x, y):
-        # Create a new Slide at (x, y) that slopes down-right
+        # Create a new Slide at (x, y) that slopes down-left like the initial slide
         new_slide = SlidePlatform(
             start_x=x,
             start_y=y,
-            end_x=x + 100,
-            end_y=y + 100
+            end_x=x - 200,  # Move 200px left like the initial slide
+            end_y=y + 200   # Move 200px down like the initial slide
         )
         self.slides.append(new_slide)
 
