@@ -54,7 +54,7 @@ def main():
         level.handle_mouse_events(events)
         # Pass events to the inventory
         for event in events:
-            inventory.handle_event(event, level)
+            inventory.handle_event(event, level, player)
 
         player.handle_input()
         player.update(level.platforms, level.slides, level.trampolines, level)

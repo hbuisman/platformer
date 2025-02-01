@@ -32,6 +32,9 @@ class Player:
         
         # Load the "ouch.wav" sound when the player object is created
         self.ouch_sound = pygame.mixer.Sound("sounds/big_player_ouch.wav")
+        
+        self.width = width * 2
+        self.height = height * 2
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -184,3 +187,16 @@ class Player:
                     # Teleport to exit, maintaining velocity
                     self.rect.centerx = exit_portal.rect.centerx
                     self.rect.bottom = exit_portal.rect.bottom 
+
+    def change_character(self, sprite_path, sound_path):
+        """Change the player's sprite and sound"""
+        # Load and scale new image
+        self.image = pygame.image.load(sprite_path).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        
+        # Update both directional images
+        self.image_right = self.image
+        self.image_left = pygame.transform.flip(self.image, True, False)
+        
+        # Load new sound
+        self.ouch_sound = pygame.mixer.Sound(sound_path) 
