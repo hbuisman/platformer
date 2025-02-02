@@ -31,6 +31,18 @@ ICONS = [
         "rect": pygame.Rect(10, 290, 60, 120),  # match portal dimensions
         "image_path": "images/portal_entry.png"
     },
+    {
+        "type": "enemy1",
+        "color": (255, 0, 0),  # Red for enemy
+        "rect": pygame.Rect(10, 430, 60, 60),
+        "image_path": "images/enemy1.png"
+    },
+    {
+        "type": "enemy2", 
+        "color": (255, 100, 0),  # Orange for enemy2
+        "rect": pygame.Rect(10, 510, 60, 60),
+        "image_path": "images/enemy2.png"
+    },
 ]
 
 # Colors for character selection buttons
@@ -76,6 +88,14 @@ ITEM_META = {
     "portal": {
         "name": "Portal",
         "description": "Instantly travel between two linked points.",
+    },
+    "enemy1": {
+        "name": "Enemy Type 1",
+        "description": "A basic enemy that causes damage on contact.",
+    },
+    "enemy2": {
+        "name": "Enemy Type 2", 
+        "description": "Another type of enemy to avoid.",
     },
 }
 
@@ -344,5 +364,9 @@ class InventoryPanel:
                         level.add_trampoline(mx, my)
                     elif self.dragging_icon["type"] == "portal":
                         level.add_portal(mx, my)
+                    elif self.dragging_icon["type"] == "enemy1":
+                        level.add_enemy(mx, my, 1)
+                    elif self.dragging_icon["type"] == "enemy2":
+                        level.add_enemy(mx, my, 2)
                 # End drag
                 self.dragging_icon = None 

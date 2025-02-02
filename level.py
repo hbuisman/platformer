@@ -1,6 +1,7 @@
 import pygame
 import math
 from slide import SlidePlatform  # Add this at the top with other imports
+from enemy import Enemy
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -98,6 +99,8 @@ class Level:
             pygame.Rect(900, 580, self.tramp_width, 40)  # Correct aspect ratio
         ]
 
+        self.enemies = []  # Add list to store enemies
+
     def handle_mouse_events(self, events):
         # Always get current mouse position at the start
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -119,7 +122,7 @@ class Level:
                         if clicked_item:
                             self.dragging_item = clicked_item
                             # Store offset from mouse to item origin
-                            if isinstance(clicked_item, Portal):
+                            if isinstance(clicked_item, (Portal, Enemy)):
                                 self.drag_offset_x = clicked_item.rect.x - mouse_x
                                 self.drag_offset_y = clicked_item.rect.y - mouse_y
                             elif isinstance(clicked_item, pygame.Rect):
@@ -135,7 +138,7 @@ class Level:
                     dx = mouse_x + self.drag_offset_x
                     dy = mouse_y + self.drag_offset_y
 
-                    if isinstance(self.dragging_item, Portal):
+                    if isinstance(self.dragging_item, (Portal, Enemy)):
                         self.dragging_item.rect.x = dx
                         self.dragging_item.rect.y = dy
                     elif isinstance(self.dragging_item, pygame.Rect):
@@ -187,6 +190,10 @@ class Level:
         for portal in self.portals:
             if portal.rect.collidepoint(mouse_x, mouse_y):
                 return portal
+        # Check enemies
+        for enemy in self.enemies:
+            if enemy.rect.collidepoint(mouse_x, mouse_y):
+                return enemy
         return None
 
     def draw(self, surface):
@@ -234,6 +241,13 @@ class Level:
         for portal in self.portals:
             portal.draw(surface, portal == self.dragging_item)
 
+        # Draw enemies
+        for enemy in self.enemies:
+            if enemy == self.dragging_item:
+                enemy.draw(surface, is_dragging=True)
+            else:
+                enemy.draw(surface)
+
     def draw_ground_with_texture(self, surface, ground):
         """Repeatedly blit the scaled grass texture on the ground platform."""
         texture_w = self.ground_texture.get_width()
@@ -269,6 +283,8 @@ class Level:
             portal_id = item.portal_id
             self.portals = [p for p in self.portals 
                           if p.portal_id != portal_id]
+        elif isinstance(item, Enemy):
+            self.enemies.remove(item)
         if self.dragging_item == item:
             self.dragging_item = None
 
@@ -308,4 +324,11 @@ class Level:
             if (p.portal_id == portal.portal_id and 
                 p.is_entrance != portal.is_entrance):
                 return p
-        return None 
+        return None
+
+    def add_enemy(self, x, y, enemy_type):
+        """Add a new enemy at the specified position"""
+        # Center enemy on mouse position, accounting for 120x120 size
+        x = x - 60  # Half of enemy width
+        y = y - 60  # Half of enemy height
+        self.enemies.append(Enemy(x, y, enemy_type)) 

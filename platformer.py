@@ -12,6 +12,8 @@ FPS = 60
 GRAVITY = 0.5
 PLAYER_SPEED = 5
 JUMP_FORCE = 10
+GAME_OVER_BG = (0, 0, 0)  # Black
+GAME_OVER_TEXT = (255, 255, 255)  # White
 
 # Colors
 WHITE = (255, 255, 255)
@@ -113,6 +115,27 @@ class Portal(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+def draw_game_over(surface):
+    """Draw the game over screen"""
+    # Fill screen with black
+    surface.fill(GAME_OVER_BG)
+    
+    # Create "Game Over" text
+    font = pygame.font.SysFont(None, 74)
+    text = font.render("Game Over", True, GAME_OVER_TEXT)
+    
+    # Center the text
+    text_rect = text.get_rect(center=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
+    
+    # Draw text
+    surface.blit(text, text_rect)
+    
+    # Add "Press R to restart" message
+    restart_font = pygame.font.SysFont(None, 36)
+    restart_text = restart_font.render("Press R to restart", True, GAME_OVER_TEXT)
+    restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 50))
+    surface.blit(restart_text, restart_rect)
+
 def main():
     # Create a player and a new Level instance
     player = Player(x=100, y=300, width=40, height=40)  # width/height will be doubled in Player.__init__
@@ -147,6 +170,12 @@ def main():
                         running = False
                     elif exit_dialog.no_button.collidepoint(event.pos):
                         exit_dialog = None
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r and player.game_over:
+                # Reset game
+                player.lives = 3
+                player.game_over = False
+                # Reset player position
+                player.rect.center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
         
         if exit_dialog is None:
             # Normal game updates when dialog is not shown
@@ -164,6 +193,7 @@ def main():
         screen.blit(overlay, (0, 0))
 
         player.draw(screen)
+        player.draw_hearts(screen)  # Draw hearts
         # Draw the level
         level.draw(screen)
         # Draw "Press I for inventory" prompt if inventory is closed
@@ -179,7 +209,13 @@ def main():
         if exit_dialog is not None:
             exit_dialog.draw(screen)
 
-        pygame.display.flip()
+        # Only update game if not game over
+        if not player.game_over:
+            pygame.display.flip()
+        else:
+            # Draw game over screen
+            draw_game_over(screen)
+            pygame.display.flip()
     
     pygame.quit()
     sys.exit()

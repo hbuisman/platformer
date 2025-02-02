@@ -38,6 +38,14 @@ class Player:
         
         self.width = width * 2
         self.height = height * 2
+        
+        self.lives = 3
+        self.invulnerable_timer = 0
+        self.game_over = False
+        
+        # Load heart image
+        self.heart_image = pygame.image.load("images/heart.png").convert_alpha()
+        self.heart_image = pygame.transform.smoothscale(self.heart_image, (40, 40))
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -87,6 +95,12 @@ class Player:
 
         # 2) Check if we've gone off-screen
         self.check_off_screen()
+
+        # Check enemy collisions if not invulnerable
+        if self.invulnerable_timer <= 0:
+            self.check_enemy_collisions(level.enemies)
+        else:
+            self.invulnerable_timer -= 1
 
     def check_collisions_x(self, platforms):
         for platform in platforms:
@@ -216,13 +230,42 @@ class Player:
                     self.on_ground = True
 
     def check_off_screen(self):
-        """If we go off-screen, teleport back to the center and start a brief 'disappeared' timer."""
+        """If we go off-screen, lose a life"""
         screen = pygame.display.get_surface()
         screen_width, screen_height = screen.get_width(), screen.get_height()
 
         # If bottom is below the screen, or we move off left/right
         if self.rect.top > screen_height or self.rect.right < 0 or self.rect.left > screen_width:
-            # Teleport to center
-            self.rect.center = (screen_width // 2, screen_height // 2)
-            # Start a brief timer to show the message
-            self.disappeared_timer = 120  # ~2 seconds at 60 FPS
+            self.lose_life()
+
+    def draw_hearts(self, surface):
+        """Draw the player's remaining lives as hearts"""
+        if self.game_over:
+            return
+        
+        for i in range(self.lives):
+            x = 10 + (i * 50)  # Space hearts 50 pixels apart
+            y = 10
+            surface.blit(self.heart_image, (x, y))
+
+    def lose_life(self):
+        """Handle losing a life and check for game over"""
+        if self.invulnerable_timer <= 0:
+            self.lives -= 1
+            self.invulnerable_timer = 60  # 1 second of invulnerability
+            self.ouch_sound.play()
+            
+            # Reset position to center of screen
+            screen = pygame.display.get_surface()
+            self.rect.center = (screen.get_width() // 2, screen.get_height() // 2)
+            
+            # Check for game over
+            if self.lives <= 0:
+                self.game_over = True
+
+    def check_enemy_collisions(self, enemies):
+        """Check for collisions with enemies"""
+        for enemy in enemies:
+            if self.rect.colliderect(enemy.rect):
+                self.lose_life()
+                break
