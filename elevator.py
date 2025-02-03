@@ -44,20 +44,35 @@ class Elevator:
         scaled_w = int(stone_texture_orig.get_width() * height_ratio)
         self.stone_texture = pygame.transform.smoothscale(stone_texture_orig, (scaled_w, self.platform_height))
 
-    def update(self):
+    def update(self, platforms):
         # Calculate vector to target
         target = self.end_point.rect.center if self.direction == 1 else self.start_point.rect.center
         target_vec = pygame.Vector2(target)
         move_vec = target_vec - self.current_pos
         
-        # Move towards target at constant speed
+        # Calculate movement step
         if move_vec.length() > self.speed:
-            move_vec.scale_to_length(self.speed)
-            self.current_pos += move_vec
+            move_step = move_vec.normalize() * self.speed
         else:
-            self.current_pos = target_vec
-            self.direction *= -1  # Reverse direction when reaching target
+            move_step = move_vec  # remaining distance to target
+
+        # Check collision with platforms before moving
+        temp_rect = self.platform_rect.copy()
+        temp_rect.center += pygame.Vector2(move_step)
         
+        collision = any(temp_rect.colliderect(p) for p in platforms)
+        
+        if collision:
+            # Reverse direction immediately on collision
+            self.direction *= -1
+        else:
+            # Move normally if no collision
+            self.current_pos += move_step
+            # Check if reached target
+            if (self.current_pos - target_vec).length() <= self.speed:
+                self.current_pos = target_vec
+                self.direction *= -1
+
         # Update platform position
         self.platform_rect.center = (round(self.current_pos.x), round(self.current_pos.y))
 

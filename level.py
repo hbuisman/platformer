@@ -366,15 +366,18 @@ class Level:
 
     def update(self):
         """Update all dynamic elements in the level"""
-        elevator_movements = {} # Store movement of each elevator
+        elevator_movements = {}
         for elevator in self.elevators:
-            prev_pos = elevator.platform_rect.center # Get previous position
-            elevator.update() # Update elevator position
-            current_pos = elevator.platform_rect.center # Get new position
-            elevator_movements[elevator] = (current_pos[0] - prev_pos[0], current_pos[1] - prev_pos[1]) # Calculate movement
-            self.elevator_prev_positions[elevator] = current_pos # Update previous position
-
-        return elevator_movements # Return movements to platformer.py
+            # Get all platforms except this elevator's own
+            other_platforms = self.platforms.copy()
+            other_platforms += [e.platform_rect for e in self.elevators if e != elevator]
+            
+            prev_pos = elevator.platform_rect.center
+            elevator.update(other_platforms)  # Pass collision platforms
+            current_pos = elevator.platform_rect.center
+            elevator_movements[elevator] = (current_pos[0] - prev_pos[0], 
+                                         current_pos[1] - prev_pos[1])
+        return elevator_movements
 
     def add_slide(self, x, y):
         # Create a new Slide at (x, y) that slopes down-left like the initial slide
