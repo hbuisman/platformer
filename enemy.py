@@ -27,6 +27,9 @@ class Enemy:
         self.y_velocity += 0.5  # Same as player's GRAVITY
         self.rect.y += self.y_velocity
         
+        # Check trampolines first
+        self.check_trampolines(level.trampolines)
+        
         # Collision detection with platforms
         self._handle_vertical_collisions(platforms, level.elevators)
         self._handle_horizontal_collisions(platforms, level.elevators)
@@ -85,6 +88,16 @@ class Enemy:
         self.on_elevator = len(elevator_collisions) > 0
         if not elevator_collisions and hasattr(self, 'elevator_offset'):
             del self.elevator_offset
+
+    def check_trampolines(self, trampolines):
+        """Handle trampoline bouncing like the player does"""
+        for tramp in trampolines:
+            if self.rect.colliderect(tramp):
+                # Only bounce if falling downward
+                if self.y_velocity > 0:
+                    self.rect.bottom = tramp.top
+                    self.y_velocity = -20  # Same bounce force as player
+                    self.on_ground = True
 
     def draw(self, surface, is_dragging=False):
         if is_dragging:
