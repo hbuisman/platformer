@@ -377,6 +377,12 @@ class Level:
             current_pos = elevator.platform_rect.center
             elevator_movements[elevator] = (current_pos[0] - prev_pos[0], 
                                          current_pos[1] - prev_pos[1])
+        
+        # Update enemies with physics
+        for enemy in self.enemies:
+            is_dragging = enemy == self.dragging_item
+            enemy.update(self.platforms, self, elevator_movements, is_dragging)
+        
         return elevator_movements
 
     def add_slide(self, x, y):
