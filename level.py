@@ -2,6 +2,7 @@ import pygame
 import math
 from slide import SlidePlatform  # Add this at the top with other imports
 from enemy import Enemy
+from elevator import Elevator, ElevatorPoint
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -100,6 +101,10 @@ class Level:
         ]
 
         self.enemies = []  # Add list to store enemies
+        self.elevators = []  # List to store elevators
+        self.next_elevator_id = 1
+
+        self.elevator_prev_positions = {} # Store previous positions of elevators
 
     def handle_mouse_events(self, events):
         # Always get current mouse position at the start
@@ -122,7 +127,7 @@ class Level:
                         if clicked_item:
                             self.dragging_item = clicked_item
                             # Store offset from mouse to item origin
-                            if isinstance(clicked_item, (Portal, Enemy)):
+                            if isinstance(clicked_item, (Portal, Enemy, ElevatorPoint)):
                                 self.drag_offset_x = clicked_item.rect.x - mouse_x
                                 self.drag_offset_y = clicked_item.rect.y - mouse_y
                             elif isinstance(clicked_item, pygame.Rect):
@@ -138,7 +143,7 @@ class Level:
                     dx = mouse_x + self.drag_offset_x
                     dy = mouse_y + self.drag_offset_y
 
-                    if isinstance(self.dragging_item, (Portal, Enemy)):
+                    if isinstance(self.dragging_item, (Portal, Enemy, ElevatorPoint)):
                         self.dragging_item.rect.x = dx
                         self.dragging_item.rect.y = dy
                     elif isinstance(self.dragging_item, pygame.Rect):
@@ -194,6 +199,12 @@ class Level:
         for enemy in self.enemies:
             if enemy.rect.collidepoint(mouse_x, mouse_y):
                 return enemy
+        # Check elevator points
+        for elevator in self.elevators:
+            if elevator.start_point.rect.collidepoint(mouse_x, mouse_y):
+                return elevator.start_point
+            if elevator.end_point.rect.collidepoint(mouse_x, mouse_y):
+                return elevator.end_point
         return None
 
     def draw(self, surface):
@@ -248,6 +259,14 @@ class Level:
             else:
                 enemy.draw(surface)
 
+        # Draw elevators
+        for elevator in self.elevators:
+            if isinstance(self.dragging_item, ElevatorPoint) and \
+               self.dragging_item in [elevator.start_point, elevator.end_point]:
+                elevator.draw(surface, self.dragging_item)
+            else:
+                elevator.draw(surface, None)
+
     def draw_ground_with_texture(self, surface, ground):
         """Repeatedly blit the scaled grass texture on the ground platform."""
         texture_w = self.ground_texture.get_width()
@@ -285,6 +304,12 @@ class Level:
                           if p.portal_id != portal_id]
         elif isinstance(item, Enemy):
             self.enemies.remove(item)
+        elif isinstance(item, ElevatorPoint):
+            # Find and remove the elevator that this point belongs to
+            for elevator in self.elevators[:]:  # Create copy to avoid modification during iteration
+                if item in [elevator.start_point, elevator.end_point]:
+                    self.elevators.remove(elevator)
+                    break
         if self.dragging_item == item:
             self.dragging_item = None
 
@@ -331,4 +356,41 @@ class Level:
         # Center enemy on mouse position, accounting for 120x120 size
         x = x - 60  # Half of enemy width
         y = y - 60  # Half of enemy height
-        self.enemies.append(Enemy(x, y, enemy_type)) 
+        self.enemies.append(Enemy(x, y, enemy_type))
+
+    def add_elevator(self, x, y):
+        """Add a new elevator at the specified position"""
+        new_elevator = Elevator(x, y, self.next_elevator_id)
+        self.elevators.append(new_elevator)
+        self.next_elevator_id += 1
+
+    def update(self):
+        """Update all dynamic elements in the level"""
+        elevator_movements = {} # Store movement of each elevator
+        for elevator in self.elevators:
+            prev_pos = elevator.platform_rect.center # Get previous position
+            elevator.update() # Update elevator position
+            current_pos = elevator.platform_rect.center # Get new position
+            elevator_movements[elevator] = (current_pos[0] - prev_pos[0], current_pos[1] - prev_pos[1]) # Calculate movement
+            self.elevator_prev_positions[elevator] = current_pos # Update previous position
+
+        return elevator_movements # Return movements to platformer.py
+
+    def add_slide(self, x, y):
+        # Create a new Slide at (x, y) that slopes down-left like the initial slide
+        new_slide = SlidePlatform(
+            start_x=x,
+            start_y=y,
+            end_x=x - 200,  # Move 200px left like the initial slide
+            end_y=y + 200   # Move 200px down like the initial slide
+        )
+        self.slides.append(new_slide)
+
+    def check_collisions(self, player_rect):
+        """Check collisions between player and all level elements"""
+        # Check platforms
+        for platform in self.platforms + [e.platform_rect for e in self.elevators]:
+            if player_rect.colliderect(platform):
+                return True
+        # Check other elements...
+        return False 

@@ -43,6 +43,12 @@ ICONS = [
         "rect": pygame.Rect(10, 510, 60, 60),
         "image_path": "images/enemy2.png"
     },
+    {
+        "type": "elevator",
+        "color": (100, 100, 255),  # Light blue for elevator
+        "rect": pygame.Rect(10, 590, 112, 30),  # Half width of platform
+        "image_path": "images/stone-platform.png"
+    },
 ]
 
 # Colors for character selection buttons
@@ -96,6 +102,10 @@ ITEM_META = {
     "enemy2": {
         "name": "Enemy Type 2", 
         "description": "Another type of enemy to avoid.",
+    },
+    "elevator": {
+        "name": "Elevator Platform",
+        "description": "A moving platform that travels between two points.",
     },
 }
 
@@ -368,5 +378,7 @@ class InventoryPanel:
                         level.add_enemy(mx, my, 1)
                     elif self.dragging_icon["type"] == "enemy2":
                         level.add_enemy(mx, my, 2)
+                    elif self.dragging_icon["type"] == "elevator":
+                        level.add_elevator(mx, my)
                 # End drag
                 self.dragging_icon = None 

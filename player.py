@@ -72,18 +72,69 @@ class Player:
     def apply_gravity(self):
         self.y_velocity += GRAVITY
 
-    def update(self, platforms, slides, trampolines, level):
-        # Apply horizontal movement
+    def update(self, platforms, slides, trampolines, level, elevator_movements=None):
+        # Get all platforms including elevators
+        all_platforms = platforms.copy()
+        elevator_collisions = []
+        for elevator in level.elevators:
+            all_platforms.append(elevator.platform_rect)
+            if self.rect.colliderect(elevator.platform_rect):
+                elevator_collisions.append(elevator)
+        
+        print(f"x_velocity at start of update: {self.x_velocity}") # DEBUG PRINT
+
+        # Check horizontal collisions
         self.rect.x += self.x_velocity
-        # Collision in x-direction
-        self.check_collisions_x(platforms)
-        
-        # Apply gravity
-        self.apply_gravity()
+        for platform in all_platforms:
+            if self.rect.colliderect(platform):
+                print("Horizontal Collision Detected!") # DEBUG PRINT
+                if self.x_velocity > 0:  # Moving right
+                    self.rect.right = platform.left
+                elif self.x_velocity < 0:  # Moving left
+                    self.rect.left = platform.right
+                self.x_velocity = 0
+
+        # Vertical movement and collision
+        self.y_velocity += GRAVITY
         self.rect.y += self.y_velocity
-        # Collision in y-direction
-        self.check_collisions_y(platforms)
         
+        # Check vertical collisions
+        self.on_ground = False
+        for platform in all_platforms:
+            if self.rect.colliderect(platform):
+                if self.y_velocity > 0:  # Falling down
+                    self.rect.bottom = platform.top
+                    self.y_velocity = 0
+                    self.on_ground = True
+                    self.jumps_left = 2
+                elif self.y_velocity < 0:  # Moving up
+                    self.rect.top = platform.bottom
+                    self.y_velocity = 0
+        
+        # Handle elevator movement - now use elevator_movements from level
+        for elevator in elevator_collisions:
+            if self.rect.bottom == elevator.platform_rect.top:  # If we're standing on the elevator
+                movement = elevator_movements.get(elevator, (0, 0)) # Get movement from level
+                
+                # If this is the first frame on the elevator, store the relative position
+                if not hasattr(self, 'elevator_offset'):
+                    self.elevator_offset = (self.rect.x - elevator.platform_rect.x, self.rect.y - elevator.platform_rect.y)
+                
+                # Apply the elevator movement
+                self.rect.x += movement[0]
+                self.rect.y += movement[1]
+                
+                # Apply player's horizontal velocity to the relative position
+                self.elevator_offset = (self.elevator_offset[0] + self.x_velocity, self.elevator_offset[1])
+                
+                # Keep the player at the same relative position on the platform
+                self.rect.x = elevator.platform_rect.x + self.elevator_offset[0]
+                self.rect.y = elevator.platform_rect.y + self.elevator_offset[1]
+            else:
+                # If not on the elevator, remove the offset
+                if hasattr(self, 'elevator_offset'):
+                    del self.elevator_offset
+
         # Now check if we're on the slide
         self.check_slides(slides)
         # Finally, check trampolines
@@ -102,36 +153,6 @@ class Player:
         else:
             self.invulnerable_timer -= 1
 
-    def check_collisions_x(self, platforms):
-        for platform in platforms:
-            if self.rect.colliderect(platform):
-                # Moving to the right
-                if self.x_velocity > 0:
-                    self.rect.right = platform.left
-                # Moving to the left
-                elif self.x_velocity < 0:
-                    self.rect.left = platform.right
-
-    def check_collisions_y(self, platforms):
-        self.on_ground = False
-        for platform in platforms:
-            if self.rect.colliderect(platform):
-                # Moving down
-                if self.y_velocity > 0:
-                    self.rect.bottom = platform.top
-                    self.y_velocity = 0
-                    self.on_ground = True
-                    
-                    # Reset jumps_left when you land
-                    self.jumps_left = 2
-                # Moving up
-                elif self.y_velocity < 0:
-                    # Play the ouch sound when bumping head on a platform
-                    self.ouch_sound.play()
-                    self.rect.top = platform.bottom
-                    self.y_velocity = 0
-
-    # NEW SLIDE COLLISION LOGIC:
     def check_slides(self, slides):
         # Reset the on_slide flag each frame; we'll set it True if we find a slide
         self.on_slide = False

@@ -182,8 +182,9 @@ def main():
             level.handle_mouse_events(events)
             for event in events:
                 inventory.handle_event(event, level, player)
-            player.handle_input()
-            player.update(level.platforms, level.slides, level.trampolines, level)
+            player.handle_input() # Call handle_input here
+            elevator_movements = level.update()  # Update elevators and get movements
+            player.update(level.platforms, level.slides, level.trampolines, level, elevator_movements) # Pass movements to player
         
         # Always update inventory so panel/tooltip positions are correct
         inventory.update()
@@ -209,13 +210,7 @@ def main():
         if exit_dialog is not None:
             exit_dialog.draw(screen)
 
-        # Only update game if not game over
-        if not player.game_over:
-            pygame.display.flip()
-        else:
-            # Draw game over screen
-            draw_game_over(screen)
-            pygame.display.flip()
+        pygame.display.flip()
     
     pygame.quit()
     sys.exit()
