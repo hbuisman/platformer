@@ -46,6 +46,9 @@ class Player:
         # Load heart image
         self.heart_image = pygame.image.load("images/heart.png").convert_alpha()
         self.heart_image = pygame.transform.smoothscale(self.heart_image, (40, 40))
+        
+        # Add new attribute for elevator tracking
+        self.on_elevator = False
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -87,6 +90,10 @@ class Player:
 
         self.on_ground = False
         for platform in all_platforms:
+            # Only skip NON-ELEVATOR platforms when on elevator
+            if self.on_elevator and platform not in [e.platform_rect for e in level.elevators]:
+                continue
+                
             if self.rect.colliderect(platform):
                 if self.y_velocity > 0:  # Falling down
                     self.rect.bottom = platform.top
@@ -149,6 +156,9 @@ class Player:
             self.check_enemy_collisions(level.enemies)
         else:
             self.invulnerable_timer -= 1
+
+        # Track if we're on an elevator
+        self.on_elevator = len(elevator_collisions) > 0
 
     def check_slides(self, slides):
         # Reset the on_slide flag each frame; we'll set it True if we find a slide
@@ -238,6 +248,10 @@ class Player:
 
     def ensure_not_below_any_platform(self, platforms):
         """If the player is inside a platform from above, place them on top and stop sliding."""
+        # Don't perform this check if we're currently on an elevator
+        if hasattr(self, 'on_elevator') and self.on_elevator:
+            return
+            
         for platform in platforms:
             if self.rect.colliderect(platform):
                 # If our bottom is below the top of the platform, we came from above
