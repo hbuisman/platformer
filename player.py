@@ -80,25 +80,11 @@ class Player:
             all_platforms.append(elevator.platform_rect)
             if self.rect.colliderect(elevator.platform_rect):
                 elevator_collisions.append(elevator)
-        
-        print(f"x_velocity at start of update: {self.x_velocity}") # DEBUG PRINT
-
-        # Check horizontal collisions
-        self.rect.x += self.x_velocity
-        for platform in all_platforms:
-            if self.rect.colliderect(platform):
-                print("Horizontal Collision Detected!") # DEBUG PRINT
-                if self.x_velocity > 0:  # Moving right
-                    self.rect.right = platform.left
-                elif self.x_velocity < 0:  # Moving left
-                    self.rect.left = platform.right
-                self.x_velocity = 0
 
         # Vertical movement and collision
         self.y_velocity += GRAVITY
         self.rect.y += self.y_velocity
-        
-        # Check vertical collisions
+
         self.on_ground = False
         for platform in all_platforms:
             if self.rect.colliderect(platform):
@@ -110,30 +96,41 @@ class Player:
                 elif self.y_velocity < 0:  # Moving up
                     self.rect.top = platform.bottom
                     self.y_velocity = 0
-        
+
         # Handle elevator movement - now use elevator_movements from level
         for elevator in elevator_collisions:
             if self.rect.bottom == elevator.platform_rect.top:  # If we're standing on the elevator
                 movement = elevator_movements.get(elevator, (0, 0)) # Get movement from level
-                
+
                 # If this is the first frame on the elevator, store the relative position
                 if not hasattr(self, 'elevator_offset'):
                     self.elevator_offset = (self.rect.x - elevator.platform_rect.x, self.rect.y - elevator.platform_rect.y)
-                
+
+                # Apply player's horizontal velocity to the relative position FIRST
+                self.elevator_offset = (self.elevator_offset[0] + self.x_velocity, self.elevator_offset[1])
+
                 # Apply the elevator movement
                 self.rect.x += movement[0]
                 self.rect.y += movement[1]
-                
-                # Apply player's horizontal velocity to the relative position
-                self.elevator_offset = (self.elevator_offset[0] + self.x_velocity, self.elevator_offset[1])
-                
+
                 # Keep the player at the same relative position on the platform
                 self.rect.x = elevator.platform_rect.x + self.elevator_offset[0]
                 self.rect.y = elevator.platform_rect.y + self.elevator_offset[1]
-            else:
-                # If not on the elevator, remove the offset
-                if hasattr(self, 'elevator_offset'):
-                    del self.elevator_offset
+
+        # Check horizontal collisions AFTER elevator movement
+        self.rect.x += self.x_velocity # Add velocity again, as elevator movement might have changed x
+        for platform in all_platforms:
+            if self.rect.colliderect(platform):
+                if self.x_velocity > 0:  # Moving right
+                    self.rect.right = platform.left
+                elif self.x_velocity < 0:  # Moving left
+                    self.rect.left = platform.right
+                self.x_velocity = 0
+
+        # If not on elevator, remove the offset (moved to AFTER elevator handling)
+        if not elevator_collisions: # Check if elevator_collisions is empty
+            if hasattr(self, 'elevator_offset'):
+                del self.elevator_offset
 
         # Now check if we're on the slide
         self.check_slides(slides)
