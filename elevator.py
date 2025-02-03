@@ -35,7 +35,7 @@ class Elevator:
         
         # Movement properties
         self.speed = 3  # Pixels per frame
-        self.direction = 1  # 1 for moving towards end, -1 for moving back
+        self.direction = -1  # Assuming initial direction is up or down
         self.current_pos = pygame.Vector2(start_x, start_y)
         
         # Load and scale stone texture
@@ -99,4 +99,7 @@ class Elevator:
         # Check start and end points
         if self.start_point.rect.collidepoint(x, y) or self.end_point.rect.collidepoint(x, y):
             return True
-        return False 
+        return False
+
+    def reverse_direction(self):
+        self.direction *= -1 

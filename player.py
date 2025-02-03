@@ -100,9 +100,13 @@ class Player:
                     self.y_velocity = 0
                     self.on_ground = True
                     self.jumps_left = 2
-                elif self.y_velocity < 0:  # Moving up
+                elif self.y_velocity < 0:  # Moving up (head bump)
                     self.rect.top = platform.bottom
                     self.y_velocity = 0
+                    # Reverse elevator direction if this happened while on elevator
+                    if self.on_elevator:
+                        for elevator in elevator_collisions:
+                            elevator.reverse_direction()
 
         # Handle elevator movement - now use elevator_movements from level
         for elevator in elevator_collisions:
