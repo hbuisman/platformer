@@ -11,7 +11,7 @@ ICONS = [
     {
         "type": "platform",
         "color": (0, 0, 255),
-        "rect": pygame.Rect(0, 40, 225, 30),  # Changed y from 10 to 40
+        "rect": pygame.Rect(0, 40, 150, 30),  # Width reduced from 225 to 150
         "image_path": "images/stone-platform.png"
     },
     {
