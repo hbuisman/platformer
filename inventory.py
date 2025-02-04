@@ -4,72 +4,75 @@ import pygame
 DEFAULT_CURSOR = pygame.SYSTEM_CURSOR_ARROW
 HAND_CURSOR = pygame.SYSTEM_CURSOR_HAND
 
-# Represent each inventory "icon" as a small box
-# We'll store "type", "color", and a rect relative to the panel
+# SECTION 1: ITEMS FOR LEVEL EDITING (MAIN SCROLLABLE AREA) 
+# -------------------------------------------------------------------
+# Update icon positions to be in vertical list for scrolling
 ICONS = [
     {
         "type": "platform",
-        "color": (0, 0, 255),  # keep color as fallback
-        "rect": pygame.Rect(10, 50, 225, 30),  # 1.5x larger
+        "color": (0, 0, 255),
+        "rect": pygame.Rect(0, 40, 225, 30),  # Changed y from 10 to 40
         "image_path": "images/stone-platform.png"
     },
     {
         "type": "slide",
         "color": (0, 200, 0),
-        "rect": pygame.Rect(10, 110, 100, 92),  # Maintain 379:349 ratio
-        "image_path": "images/slide.png"  # Add image path for slide
+        "rect": pygame.Rect(0, 80, 100, 92),  # y from 50 to 80 (40+30+10)
+        "image_path": "images/slide.png"
     },
     {
         "type": "trampoline",
         "color": (200, 0, 200),
-        "rect": pygame.Rect(10, 230, 73, 40),  # match trampoline dimensions from level.py
+        "rect": pygame.Rect(0, 182, 73, 40),  # y from 152 to 182 (80+92+10)
         "image_path": "images/trampoline.png"
     },
     {
         "type": "portal",
         "color": (255, 165, 0),
-        "rect": pygame.Rect(10, 290, 60, 120),  # match portal dimensions
+        "rect": pygame.Rect(0, 232, 60, 120),  # y from 202 to 232 (182+40+10)
         "image_path": "images/portal_entry.png"
     },
     {
         "type": "star",
         "image_path": "images/star.png",
-        "rect": pygame.Rect(10, 430, 40, 40)
+        "rect": pygame.Rect(0, 362, 40, 40)  # y from 332 to 362 (232+120+10)
     },
     {
         "type": "enemy1",
         "color": (255, 0, 0),
-        "rect": pygame.Rect(10, 520, 60, 60),
+        "rect": pygame.Rect(0, 412, 60, 60),  # y from 382 to 412 (362+40+10)
         "image_path": "images/enemy1.png"
     },
     {
         "type": "enemy2", 
         "color": (255, 100, 0),
-        "rect": pygame.Rect(10, 600, 60, 60),
+        "rect": pygame.Rect(0, 482, 60, 60),  # y from 452 to 482 (412+60+10)
         "image_path": "images/enemy2.png"
     },
     {
         "type": "elevator",
-        "color": (100, 100, 255),  # Light blue for elevator
-        "rect": pygame.Rect(10, 590, 112, 30),  # Half width of platform
+        "color": (100, 100, 255),
+        "rect": pygame.Rect(0, 552, 112, 30),  # y from 522 to 552 (482+60+10)
         "image_path": "images/stone-platform.png"
     }
 ]
 
-# Colors for character selection buttons
+# SECTION 2: CHARACTER SELECTION (FIXED BOTTOM SECTION)
+# -------------------------------------------------------------------
+# Move these constants ABOVE the CHARACTERS list
+PORTRAIT_SIZE = 60  # Moved up before first use
 BUTTON_BORDER_COLOR = (100, 100, 100)  # Normal border color
 BUTTON_HOVER_COLOR = (255, 255, 255)   # Border color when hovering
 BUTTON_BORDER_WIDTH = 2
 
-# Character selection portraits
-PORTRAIT_SIZE = 60
+# Then define CHARACTERS
 CHARACTERS = [
     {
         "id": "big",
         "portrait": pygame.image.load("images/player_big_portrait.png"),
         "sprite": "images/player_big.png",
         "sound": "sounds/big_player_ouch.wav",
-        "rect": pygame.Rect(10, 650, PORTRAIT_SIZE, PORTRAIT_SIZE),
+        "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),  # Now uses defined constant
         "hovered": False
     },
     {
@@ -77,7 +80,7 @@ CHARACTERS = [
         "portrait": pygame.image.load("images/player_small_portrait.png"),
         "sprite": "images/player_small.png",
         "sound": "sounds/small_player_ouch.wav",
-        "rect": pygame.Rect(80, 650, PORTRAIT_SIZE, PORTRAIT_SIZE),
+        "rect": pygame.Rect(70, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),  # 60+10 padding
         "hovered": False
     }
 ]
@@ -178,6 +181,30 @@ class InventoryPanel:
                     )
                     self.textures[icon["type"]] = scaled
 
+        # Add scrolling properties
+        self.scroll_offset = 0  # How much we've scrolled down
+        self.max_scroll = 0
+        self.scroll_speed = 20
+        
+        # Calculate total content height for scrolling
+        self.content_height = max(icon["rect"].bottom for icon in ICONS)
+        
+        # Character section setup
+        self.char_section_height = 100  # Space at bottom for characters
+        self.char_section_y = screen_height - self.char_section_height
+        
+        # Update max scroll based on available space
+        available_height = screen_height - self.char_section_height
+        self.max_scroll = max(0, self.content_height - available_height)
+        
+        # Center character portraits in their section
+        char_area_width = self.width
+        total_char_width = len(CHARACTERS) * PORTRAIT_SIZE + (len(CHARACTERS)-1)*10
+        start_x = (char_area_width - total_char_width) // 2
+        for i, char in enumerate(CHARACTERS):
+            char["rect"].x = start_x + i*(PORTRAIT_SIZE + 10)
+            char["rect"].y = 20  # Within character section
+
     def toggle(self, screen_width):
         self.open = not self.open
         if self.open:
@@ -186,35 +213,36 @@ class InventoryPanel:
             self.goal_x = screen_width
 
     def update_icon_hover_states(self, mouse_pos):
-        """Check if the mouse is hovering any icon (not dragged)."""
+        """Updated to account for scrolling"""
         if not self.dragging_icon:
             self.hovered_icon = None
             panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
             if panel_rect.collidepoint(*mouse_pos):
+                # Adjust mouse Y for scrolling
+                my_adj = mouse_pos[1] + self.scroll_offset
                 for icon in ICONS:
                     abs_rect = icon["rect"].copy()
                     abs_rect.x += self.x
-                    if abs_rect.collidepoint(mouse_pos):
+                    abs_rect.y += self.scroll_offset  # Apply scroll offset
+                    if abs_rect.collidepoint(mouse_pos[0], my_adj):
                         self.hovered_icon = icon
                         break
 
     def update_character_hover_states(self, mouse_pos):
-        """Update hover states and cursor based on mouse position"""
+        """Updated to only check bottom section"""
         mx, my = mouse_pos
         is_hovering_any = False
         
         for char in CHARACTERS:
             rect_copy = char["rect"].copy()
             rect_copy.x += self.x
+            rect_copy.y += self.char_section_y  # Offset to bottom section
             char["hovered"] = self.open and rect_copy.collidepoint(mx, my)
             if char["hovered"]:
                 is_hovering_any = True
         
-        # Set appropriate cursor
-        if is_hovering_any:
-            pygame.mouse.set_cursor(HAND_CURSOR)
-        else:
-            pygame.mouse.set_cursor(DEFAULT_CURSOR)
+        # Set cursor
+        pygame.mouse.set_cursor(HAND_CURSOR if is_hovering_any else DEFAULT_CURSOR)
 
     def update(self):
         # Animate panel sliding in/out more quickly
@@ -302,34 +330,54 @@ class InventoryPanel:
         # Now blit this panel_surf onto the main surface at (self.x, 0)
         surface.blit(panel_surf, (self.x, 0))
         
-        # Draw inventory icons
+        # Draw "Level Elements" title (scrolls with content)
+        font = pygame.font.SysFont(None, 28)
+        title_surf = font.render("Level Elements", True, (255, 255, 255))
+        title_rect = title_surf.get_rect(x=self.x + 10, y=10 + self.scroll_offset)
+        surface.blit(title_surf, title_rect)
+
+        # Draw inventory icons with scroll offset
         for icon in ICONS:
             rect_copy = icon["rect"].copy()
             rect_copy.x += self.x
+            rect_copy.y += self.scroll_offset  # Apply scrolling
             
-            if icon == self.hovered_icon and not self.dragging_icon:
-                # Use the same magenta hue as with drag for consistent UX
-                hover_texture = self.textures[icon["type"]].copy()
-                overlay = pygame.Surface(hover_texture.get_size(), pygame.SRCALPHA)
-                overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
-                hover_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                surface.blit(hover_texture, rect_copy)
-            else:
-                # Draw normal texture
+            # Only draw if visible in viewport
+            if rect_copy.bottom > 0 and rect_copy.top < self.char_section_y:
+                if icon == self.hovered_icon and not self.dragging_icon:
+                    # Use the same magenta hue as with drag for consistent UX
+                    hover_texture = self.textures[icon["type"]].copy()
+                    overlay = pygame.Surface(hover_texture.get_size(), pygame.SRCALPHA)
+                    overlay.fill((255, 0, 255, 128))  # semi-transparent magenta
+                    hover_texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    surface.blit(hover_texture, rect_copy)
+                
                 surface.blit(self.textures[icon["type"]], rect_copy)
             
             # Remove border – no more pygame.draw.rect(...) around icons
 
-        # Draw character portraits with borders
+        # Draw "Characters" title above the section
+        char_title_surf = font.render("Characters", True, (255, 255, 255))
+        char_title_rect = char_title_surf.get_rect(
+            centerx=self.x + self.width//2,
+            y=self.char_section_y - 30
+        )
+        surface.blit(char_title_surf, char_title_rect)
+
+        # Draw character section background
+        char_bg = pygame.Surface((self.width, self.char_section_height), pygame.SRCALPHA)
+        char_bg.fill((140, 140, 140, 200))  # Slightly darker background
+        surface.blit(char_bg, (self.x, self.char_section_y))
+        
+        # Draw character portraits
         for char in CHARACTERS:
             rect_copy = char["rect"].copy()
             rect_copy.x += self.x
+            rect_copy.y += self.char_section_y  # Offset to bottom section
             
-            # Draw border (color changes based on hover state)
+            # Border and portrait
             border_color = BUTTON_HOVER_COLOR if char["hovered"] else BUTTON_BORDER_COLOR
             pygame.draw.rect(surface, border_color, rect_copy, BUTTON_BORDER_WIDTH)
-            
-            # Draw portrait inside border
             surface.blit(char["portrait"], rect_copy)
         
         # If dragging, update ghost drawing for slides too
@@ -356,14 +404,20 @@ class InventoryPanel:
             pygame.mouse.set_cursor(DEFAULT_CURSOR)
             return
         
+        # Handle mouse wheel for scrolling
+        if event.type == pygame.MOUSEWHEEL:
+            if self.open:
+                self.scroll_offset += event.y * self.scroll_speed
+                self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+        
+        # Character clicks need offset for section position
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Check for character selection clicks
             for char in CHARACTERS:
                 rect_copy = char["rect"].copy()
                 rect_copy.x += self.x
+                rect_copy.y += self.char_section_y  # Add section Y offset
                 if rect_copy.collidepoint(event.pos):
                     player.change_character(char["sprite"], char["sound"])
-                    pygame.mouse.set_cursor(DEFAULT_CURSOR)
                     return
             
             # Check if clicked on any icon in the panel

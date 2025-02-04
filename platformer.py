@@ -27,8 +27,6 @@ BUTTON_TEXT = (255, 255, 255)
 
 # Setup font for UI text
 UI_FONT = pygame.font.SysFont(None, 32)  # None uses default system font
-INVENTORY_PROMPT = UI_FONT.render("Press i for inventory", True, BLACK)
-PROMPT_PADDING = 10  # Padding from screen edge
 
 # Set up fullscreen display
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -201,12 +199,6 @@ def main():
         player.draw_hearts(screen)  # Draw hearts
         # Draw the level
         level.draw(screen)
-        # Draw "Press I for inventory" prompt if inventory is closed
-        if not inventory.open:
-            # Position in top right corner with padding
-            prompt_rect = INVENTORY_PROMPT.get_rect()
-            prompt_rect.topright = (SCREEN_WIDTH - PROMPT_PADDING, PROMPT_PADDING)
-            screen.blit(INVENTORY_PROMPT, prompt_rect)
         # Draw panel last so it sits on top
         inventory.draw(screen)
         
@@ -216,8 +208,12 @@ def main():
 
         # Draw star counter
         star_text = UI_FONT.render(f"× {player.stars_collected}", True, BLACK)
-        screen.blit(star_icon, (SCREEN_WIDTH - 100, 20))
-        screen.blit(star_text, (SCREEN_WIDTH - 60, 30))
+        # Calculate position based on panel's current X position
+        total_width = 40 + star_text.get_width() + 10  # icon + text + spacing
+        star_x = inventory.x - total_width - 20  # 20px left of panel
+        star_y = 20
+        screen.blit(star_icon, (star_x, star_y))
+        screen.blit(star_text, (star_x + 50, star_y + 10))  # 40px icon + 10px spacing
 
         pygame.display.flip()
     
