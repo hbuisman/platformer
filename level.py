@@ -402,10 +402,11 @@ class Level:
             enemy.update(self.platforms, self, elevator_movements, is_dragging)
         
         # Check star collisions
-        for star in self.stars[:]:  # Iterate copy to allow removal
+        for star in self.stars[:]:
             if not star.collected and player.rect.colliderect(star.rect):
                 star.collected = True
                 player.stars_collected += 1
+                player.star_sound.play()
                 self.stars.remove(star)
         
         return elevator_movements

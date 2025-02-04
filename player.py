@@ -52,6 +52,8 @@ class Player:
         
         # Add star counter
         self.stars_collected = 0
+        
+        self.star_sound = pygame.mixer.Sound("sounds/collect_star.wav")
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
