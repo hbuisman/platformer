@@ -47,6 +47,10 @@ overlay.set_alpha(80)  # slightly less opaque for a more modern "frosted" feel
 
 clock = pygame.time.Clock()
 
+# Load star image for HUD
+star_icon = pygame.image.load("images/star.png").convert_alpha()
+star_icon = pygame.transform.smoothscale(star_icon, (40, 40))
+
 class ExitDialog:
     def __init__(self):
         self.width = 400
@@ -183,7 +187,7 @@ def main():
             for event in events:
                 inventory.handle_event(event, level, player)
             player.handle_input() # Call handle_input here
-            elevator_movements = level.update()  # Update elevators and get movements
+            elevator_movements = level.update(player)  # Pass player to update method
             player.update(level.platforms, level.slides, level.trampolines, level, elevator_movements) # Pass movements to player
         
         # Always update inventory so panel/tooltip positions are correct
@@ -209,6 +213,11 @@ def main():
         # Draw exit dialog on top if it exists
         if exit_dialog is not None:
             exit_dialog.draw(screen)
+
+        # Draw star counter
+        star_text = UI_FONT.render(f"× {player.stars_collected}", True, BLACK)
+        screen.blit(star_icon, (SCREEN_WIDTH - 100, 20))
+        screen.blit(star_text, (SCREEN_WIDTH - 60, 30))
 
         pygame.display.flip()
     

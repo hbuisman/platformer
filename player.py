@@ -49,6 +49,9 @@ class Player:
         
         # Add new attribute for elevator tracking
         self.on_elevator = False
+        
+        # Add star counter
+        self.stars_collected = 0
     
     def handle_input(self):
         keys = pygame.key.get_pressed()

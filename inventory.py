@@ -32,15 +32,20 @@ ICONS = [
         "image_path": "images/portal_entry.png"
     },
     {
+        "type": "star",
+        "image_path": "images/star.png",
+        "rect": pygame.Rect(10, 430, 40, 40)
+    },
+    {
         "type": "enemy1",
-        "color": (255, 0, 0),  # Red for enemy
-        "rect": pygame.Rect(10, 430, 60, 60),
+        "color": (255, 0, 0),
+        "rect": pygame.Rect(10, 520, 60, 60),
         "image_path": "images/enemy1.png"
     },
     {
         "type": "enemy2", 
-        "color": (255, 100, 0),  # Orange for enemy2
-        "rect": pygame.Rect(10, 510, 60, 60),
+        "color": (255, 100, 0),
+        "rect": pygame.Rect(10, 600, 60, 60),
         "image_path": "images/enemy2.png"
     },
     {
@@ -48,7 +53,7 @@ ICONS = [
         "color": (100, 100, 255),  # Light blue for elevator
         "rect": pygame.Rect(10, 590, 112, 30),  # Half width of platform
         "image_path": "images/stone-platform.png"
-    },
+    }
 ]
 
 # Colors for character selection buttons
@@ -161,6 +166,17 @@ class InventoryPanel:
             old_y = icon["rect"].y
             icon["rect"].x = (self.width - icon["rect"].width) // 2
             icon["rect"].y = old_y
+
+        # Add star to textures (in the existing loop)
+        for icon in ICONS:
+            if "image_path" in icon:
+                if icon["type"] == "star":
+                    original = pygame.image.load(icon["image_path"]).convert_alpha()
+                    scaled = pygame.transform.smoothscale(
+                        original,
+                        (icon["rect"].width, icon["rect"].height)
+                    )
+                    self.textures[icon["type"]] = scaled
 
     def toggle(self, screen_width):
         self.open = not self.open
@@ -380,5 +396,7 @@ class InventoryPanel:
                         level.add_enemy(mx, my, 2)
                     elif self.dragging_icon["type"] == "elevator":
                         level.add_elevator(mx, my)
+                    elif self.dragging_icon["type"] == "star":
+                        level.add_star(mx, my)
                 # End drag
                 self.dragging_icon = None 

@@ -3,6 +3,7 @@ import math
 from slide import SlidePlatform  # Add this at the top with other imports
 from enemy import Enemy
 from elevator import Elevator, ElevatorPoint
+from star import Star
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -106,6 +107,9 @@ class Level:
 
         self.elevator_prev_positions = {} # Store previous positions of elevators
 
+        # Add to __init__
+        self.stars = []
+
     def handle_mouse_events(self, events):
         # Always get current mouse position at the start
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -126,8 +130,8 @@ class Level:
                         clicked_item = self.find_clicked_item(mouse_x, mouse_y)
                         if clicked_item:
                             self.dragging_item = clicked_item
-                            # Store offset from mouse to item origin
-                            if isinstance(clicked_item, (Portal, Enemy, ElevatorPoint)):
+                            # Add Star to this conditional
+                            if isinstance(clicked_item, (Portal, Enemy, ElevatorPoint, Star)):
                                 self.drag_offset_x = clicked_item.rect.x - mouse_x
                                 self.drag_offset_y = clicked_item.rect.y - mouse_y
                             elif isinstance(clicked_item, pygame.Rect):
@@ -143,7 +147,7 @@ class Level:
                     dx = mouse_x + self.drag_offset_x
                     dy = mouse_y + self.drag_offset_y
 
-                    if isinstance(self.dragging_item, (Portal, Enemy, ElevatorPoint)):
+                    if isinstance(self.dragging_item, (Portal, Enemy, ElevatorPoint, Star)):
                         self.dragging_item.rect.x = dx
                         self.dragging_item.rect.y = dy
                     elif isinstance(self.dragging_item, pygame.Rect):
@@ -205,6 +209,10 @@ class Level:
                 return elevator.start_point
             if elevator.end_point.rect.collidepoint(mouse_x, mouse_y):
                 return elevator.end_point
+        # Check stars
+        for star in self.stars:
+            if star.rect.collidepoint(mouse_x, mouse_y) and not star.collected:
+                return star
         return None
 
     def draw(self, surface):
@@ -267,6 +275,10 @@ class Level:
             else:
                 elevator.draw(surface, None)
 
+        # Draw stars
+        for star in self.stars:
+            star.draw(surface, star == self.dragging_item)
+
     def draw_ground_with_texture(self, surface, ground):
         """Repeatedly blit the scaled grass texture on the ground platform."""
         texture_w = self.ground_texture.get_width()
@@ -310,6 +322,8 @@ class Level:
                 if item in [elevator.start_point, elevator.end_point]:
                     self.elevators.remove(elevator)
                     break
+        elif item in self.stars:
+            self.stars.remove(item)
         if self.dragging_item == item:
             self.dragging_item = None
 
@@ -364,7 +378,11 @@ class Level:
         self.elevators.append(new_elevator)
         self.next_elevator_id += 1
 
-    def update(self):
+    def add_star(self, x, y):
+        """Add a new star at the specified position"""
+        self.stars.append(Star(x, y))
+
+    def update(self, player):
         """Update all dynamic elements in the level"""
         elevator_movements = {}
         for elevator in self.elevators:
@@ -383,17 +401,14 @@ class Level:
             is_dragging = enemy == self.dragging_item
             enemy.update(self.platforms, self, elevator_movements, is_dragging)
         
+        # Check star collisions
+        for star in self.stars[:]:  # Iterate copy to allow removal
+            if not star.collected and player.rect.colliderect(star.rect):
+                star.collected = True
+                player.stars_collected += 1
+                self.stars.remove(star)
+        
         return elevator_movements
-
-    def add_slide(self, x, y):
-        # Create a new Slide at (x, y) that slopes down-left like the initial slide
-        new_slide = SlidePlatform(
-            start_x=x,
-            start_y=y,
-            end_x=x - 200,  # Move 200px left like the initial slide
-            end_y=y + 200   # Move 200px down like the initial slide
-        )
-        self.slides.append(new_slide)
 
     def check_collisions(self, player_rect):
         """Check collisions between player and all level elements"""
