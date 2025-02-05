@@ -209,8 +209,10 @@ class InventoryPanel:
         self.open = not self.open
         if self.open:
             self.goal_x = screen_width - self.width
+            print(f"Opening panel: goal_x = {self.goal_x}")  # Debug print
         else:
             self.goal_x = screen_width
+            print(f"Closing panel: goal_x = {self.goal_x}")  # Debug print
 
     def update_icon_hover_states(self, mouse_pos):
         """Updated to account for scrolling"""
@@ -246,11 +248,13 @@ class InventoryPanel:
 
     def update(self):
         # Animate panel sliding in/out more quickly
-        step = 15
-        if self.x < self.goal_x:
-            self.x += min(step, self.goal_x - self.x)
+        step = 40  # Increase step size for faster animation
+        if abs(self.x - self.goal_x) < step:
+            self.x = self.goal_x  # Snap to final position if very close
+        elif self.x < self.goal_x:
+            self.x += step
         elif self.x > self.goal_x:
-            self.x -= min(step, self.x - self.goal_x)
+            self.x -= step
         
         # Update hover states for icons & characters
         if self.open:

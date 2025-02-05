@@ -104,23 +104,18 @@ class SlidePlatform(Draggable):
         self.rect = self._calculate_rect()
         self._update_flip_icon_position()
 
+    def handle_click(self, pos) -> bool:
+        # If the click is within the flip icon area, flip the slide.
+        if self.flip_icon_rect.collidepoint(pos):
+            self.flip()
+            return True
+        return False
+
     def draw(self, surface):
         if self.being_dragged:
             texture = self.get_tinted_surface(self.texture)
         else:
             texture = self.texture
         surface.blit(texture, self.rect)
-        mouse_pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(mouse_pos):
-            self._draw_flip_icon(surface)
-
-    def _draw_flip_icon(self, surface):
+        # Always draw the flip icon.
         surface.blit(self.rotate_icon, self.flip_icon_rect)
-
-    def handle_click(self, pos) -> bool:
-        if not self.rect.collidepoint(pos):
-            return False
-        if self.flip_icon_rect.collidepoint(pos):
-            self.flip()
-            return True
-        return False

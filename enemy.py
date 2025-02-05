@@ -1,8 +1,10 @@
 import pygame
+from physics_object import PhysicsObject
 from draggable import Draggable
 
-class Enemy(Draggable):
+class Enemy(PhysicsObject, Draggable):
     def __init__(self, x, y, enemy_type):
+        PhysicsObject.__init__(self)
         Draggable.__init__(self)
         self.enemy_type = enemy_type
         self.image = pygame.image.load(f"images/enemy{enemy_type}.png").convert_alpha()
@@ -10,8 +12,6 @@ class Enemy(Draggable):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.x_velocity = 0
-        self.y_velocity = 0
         self.on_ground = False
         self.on_elevator = False
         self.elevator_offset = None
@@ -19,36 +19,12 @@ class Enemy(Draggable):
     def update(self, platforms, level, elevator_movements):
         if self.being_dragged:
             return
-        self.y_velocity += 0.5  # Gravity
-        self.rect.y += self.y_velocity
-        self.check_trampolines(level.trampolines)
-        self._handle_vertical_collisions(platforms, level.elevators)
-        self._handle_horizontal_collisions(platforms, level.elevators)
+        all_platforms = platforms.copy()
+        for elevator in level.elevators:
+            all_platforms.append(elevator.platform_rect)
+        self.update_physics(all_platforms, level.trampolines, level.portals, level)
+        self.handle_horizontal_collisions(platforms)
         self._handle_elevators(level.elevators, elevator_movements)
-
-    def _handle_vertical_collisions(self, platforms, elevators):
-        self.on_ground = False
-        all_platforms = platforms + [e.platform_rect for e in elevators]
-        for platform in all_platforms:
-            if self.rect.colliderect(platform):
-                if self.y_velocity > 0:
-                    self.rect.bottom = platform.top
-                    self.y_velocity = 0
-                    self.on_ground = True
-                elif self.y_velocity < 0:
-                    self.rect.top = platform.bottom
-                    self.y_velocity = 0
-
-    def _handle_horizontal_collisions(self, platforms, elevators):
-        all_platforms = platforms + [e.platform_rect for e in elevators]
-        self.rect.x += self.x_velocity
-        for platform in all_platforms:
-            if self.rect.colliderect(platform):
-                if self.x_velocity > 0:
-                    self.rect.right = platform.left
-                elif self.x_velocity < 0:
-                    self.rect.left = platform.right
-                self.x_velocity = 0
 
     def _handle_elevators(self, elevators, elevator_movements):
         elevator_collisions = []
@@ -68,14 +44,6 @@ class Enemy(Draggable):
         self.on_elevator = len(elevator_collisions) > 0
         if not elevator_collisions and hasattr(self, 'elevator_offset'):
             del self.elevator_offset
-
-    def check_trampolines(self, trampolines):
-        for tramp in trampolines:
-            if self.rect.colliderect(tramp.rect):
-                if self.y_velocity > 0:
-                    self.rect.bottom = tramp.rect.top
-                    self.y_velocity = -20  # Bounce force
-                    self.on_ground = True
 
     def draw(self, surface):
         if self.being_dragged:
