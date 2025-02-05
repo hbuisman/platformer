@@ -104,12 +104,23 @@ class SlidePlatform(Draggable):
         self.rect = self._calculate_rect()
         self._update_flip_icon_position()
 
-    def handle_click(self, pos) -> bool:
-        # If the click is within the flip icon area, flip the slide.
-        if self.flip_icon_rect.collidepoint(pos):
-            self.flip()
-            return True
-        return False
+    def handle_click(self, event):
+        """
+        If left-click (button 1), check if the flip icon was clicked.
+        If so, flip the slide and do not start a drag.
+        Otherwise, delegate to the draggable default.
+        For a right-click (button 3), signal removal.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if self.flip_icon_rect.collidepoint(event.pos):
+                    self.flip()
+                    return "handled"  # special behavior handled; no drag needed.
+                else:
+                    return super().handle_click(event)
+            elif event.button == 3:
+                return "remove"
+        return None
 
     def draw(self, surface):
         if self.being_dragged:

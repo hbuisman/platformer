@@ -5,13 +5,13 @@ class Draggable:
         self.being_dragged = False
 
     def start_drag(self, mouse_x, mouse_y):
-        """Record the offset between the object’s position and the mouse position and mark it as being dragged."""
+        """Record the offset between the object's position and the mouse position and mark it as being dragged."""
         self.drag_offset_x = self.rect.x - mouse_x
         self.drag_offset_y = self.rect.y - mouse_y
         self.being_dragged = True
 
     def update_drag(self, mouse_x, mouse_y):
-        """Update the object’s position based on the mouse position and stored offset."""
+        """Update the object's position based on the mouse position and stored offset."""
         self.rect.x = mouse_x + self.drag_offset_x
         self.rect.y = mouse_y + self.drag_offset_y
 
@@ -26,3 +26,17 @@ class Draggable:
         overlay.fill(tint_color)
         tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         return tinted
+
+    def handle_click(self, event):
+        """
+        Default click handler for draggable objects.
+        Left-click (button 1) starts dragging,
+        while right-click (button 3) signals removal.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self.start_drag(event.pos[0], event.pos[1])
+                return "drag"
+            elif event.button == 3:
+                return "remove"
+        return None

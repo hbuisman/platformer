@@ -72,28 +72,26 @@ class Level:
         self.stars = []
     
     def handle_mouse_events(self, events):
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 3:  # Right-click: remove item
-                    item = self.find_clicked_item(mouse_x, mouse_y)
-                    if item:
-                        self.remove_item(item)
-                elif event.button == 1:  # Left-click: start drag
-                    clicked_item = self.find_clicked_item(mouse_x, mouse_y)
-                    if clicked_item and isinstance(clicked_item, Draggable):
-                        clicked_item.start_drag(mouse_x, mouse_y)
+                # Use event.pos so that each object can handle the click event.
+                clicked_item = self.find_clicked_item(event.pos[0], event.pos[1])
+                if clicked_item and hasattr(clicked_item, "handle_click"):
+                    action = clicked_item.handle_click(event)
+                    if action == "drag":
                         self.dragging_item = clicked_item
+                    elif action == "remove":
+                        self.remove_item(clicked_item)
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging_item and isinstance(self.dragging_item, Draggable):
-                    self.dragging_item.update_drag(mouse_x, mouse_y)
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.dragging_item.update_drag(event.pos[0], event.pos[1])
+            elif event.type == pygame.MOUSEBUTTONUP:
                 if self.dragging_item and isinstance(self.dragging_item, Draggable):
                     self.dragging_item.end_drag()
                 self.dragging_item = None
         
         if not self.dragging_item:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
             hovered_slide = self.find_clicked_item(mouse_x, mouse_y)
             if isinstance(hovered_slide, SlidePlatform):
                 if not hasattr(hovered_slide, 'hover_timer'):
