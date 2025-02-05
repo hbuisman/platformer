@@ -5,6 +5,7 @@ from enemy import Enemy
 from elevator import Elevator, ElevatorPoint
 from star import Star
 from game_platform import Ground, StonePlatform
+from trampoline import Trampoline  # New import for trampolines
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # new color for trampoline
@@ -56,22 +57,18 @@ class Level:
         self.slides = [
             SlidePlatform(700, 350, 500, 550)
         ]
-        self.portals = []
+        self.portals = []  # Will store Portal objects
         self.next_portal_id = 1
         
         self.dragging_item = None
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         
-        # Setup trampoline.
-        tramp_texture_orig = pygame.image.load("images/trampoline.png").convert_alpha()
-        height_ratio = 40 / tramp_texture_orig.get_height()
-        scaled_w = int(tramp_texture_orig.get_width() * height_ratio)
-        scaled_h = 40
-        self.tramp_texture = pygame.transform.smoothscale(tramp_texture_orig, (scaled_w, scaled_h))
-        self.tramp_width = int(40 * (363/198))
+        # Create trampolines using the new Trampoline class.
+        # Using the same aspect ratio as before: width = int(40*(363/198))
+        tramp_width = int(40 * (363/198))
         self.trampolines = [
-            pygame.Rect(900, 580, self.tramp_width, 40)
+            Trampoline(900, 580, tramp_width, 40)
         ]
         
         self.enemies = []
@@ -137,14 +134,14 @@ class Level:
                     s.hover_timer = 0
     
     def find_clicked_item(self, mouse_x, mouse_y):
-        # Check stone platforms (skip the first if desired)
+        # Check stone platforms (skip the ground if desired)
         for p in self.platforms[1:]:
             if p.rect.collidepoint(mouse_x, mouse_y):
                 return p
         # Check trampolines
-        for t in self.trampolines:
-            if t.collidepoint(mouse_x, mouse_y):
-                return t
+        for tramp in self.trampolines:
+            if tramp.rect.collidepoint(mouse_x, mouse_y):
+                return tramp
         # Check slides
         for s in self.slides:
             if s.contains_point(mouse_x, mouse_y, threshold=8):
@@ -170,45 +167,46 @@ class Level:
         return None
 
     def draw(self, surface):
+        # Draw platforms
         for platform in self.platforms:
             if platform == self.dragging_item:
                 platform.draw_tinted(surface, (255, 0, 255, 128))
             else:
                 platform.draw(surface)
+        # Draw slides
         for slide in self.slides:
             if slide == self.dragging_item:
                 slide.draw(surface, highlight=True)
             else:
                 slide.draw(surface, highlight=False)
+        # Draw trampolines
         for tramp in self.trampolines:
             if tramp == self.dragging_item:
-                texture = self.tramp_texture.copy()
-                overlay = pygame.Surface(texture.get_size(), pygame.SRCALPHA)
+                tinted = tramp.texture.copy()
+                overlay = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
                 overlay.fill((255, 0, 255, 128))
-                texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                x = tramp.x + (tramp.width - texture.get_width()) // 2
-                surface.blit(texture, (x, tramp.y))
+                tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                surface.blit(tinted, tramp.rect)
             else:
-                self.draw_trampoline_with_texture(surface, tramp)
+                tramp.draw(surface)
+        # Draw portals
         for portal in self.portals:
             portal.draw(surface, portal == self.dragging_item)
+        # Draw enemies
         for enemy in self.enemies:
             if enemy == self.dragging_item:
                 enemy.draw(surface, is_dragging=True)
             else:
                 enemy.draw(surface)
+        # Draw elevators
         for elevator in self.elevators:
             if isinstance(self.dragging_item, ElevatorPoint) and self.dragging_item in [elevator.start_point, elevator.end_point]:
                 elevator.draw(surface, self.dragging_item)
             else:
                 elevator.draw(surface, None)
+        # Draw stars
         for star in self.stars:
             star.draw(surface, star == self.dragging_item)
-
-    def draw_trampoline_with_texture(self, surface, tramp):
-        texture_w = self.tramp_texture.get_width()
-        x = tramp.x + (tramp.width - texture_w) // 2
-        surface.blit(self.tramp_texture, (x, tramp.y))
 
     def remove_item(self, item):
         if item in self.platforms:
@@ -241,7 +239,8 @@ class Level:
         self.slides.append(new_slide)
 
     def add_trampoline(self, x, y):
-        new_tramp = pygame.Rect(x - self.tramp_width // 2, y - 20, self.tramp_width, 40)
+        tramp_width = int(40 * (363/198))
+        new_tramp = Trampoline(x - tramp_width // 2, y - 20, tramp_width, 40)
         self.trampolines.append(new_tramp)
 
     def add_portal(self, x, y):
