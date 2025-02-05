@@ -1,6 +1,8 @@
+# trampoline.py
 import pygame
+from draggable import Draggable
 
-class Trampoline:
+class Trampoline(Draggable):
     DEFAULT_IMAGE_PATH = "images/trampoline.png"
     DEFAULT_HEIGHT = 40
 
@@ -10,8 +12,8 @@ class Trampoline:
 
         Args:
             x, y: Top‐left coordinates.
-            width: The desired width of the trampoline.
-            height: The desired height; defaults to DEFAULT_HEIGHT.
+            width: Desired width.
+            height: Desired height (defaults to DEFAULT_HEIGHT).
         """
         if height is None:
             height = Trampoline.DEFAULT_HEIGHT
@@ -20,5 +22,5 @@ class Trampoline:
         self.texture = pygame.transform.smoothscale(original, (width, height))
 
     def draw(self, surface):
-        """Draw the trampoline by blitting its texture at its rectangle."""
+        """Draw the trampoline by blitting its texture."""
         surface.blit(self.texture, self.rect)

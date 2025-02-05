@@ -1,4 +1,6 @@
+# game_platform.py
 import pygame
+from draggable import Draggable
 
 class Platform:
     def __init__(self, x, y, width, height, texture, tile_vertical=False):
@@ -35,7 +37,7 @@ class Platform:
         
         Args:
             surface: The pygame.Surface to draw on.
-            tint_color: A (R,G,B,A) tuple used for the tint (e.g. (255,0,255,128)).
+            tint_color: A (R,G,B,A) tuple used for the tint.
         """
         tinted_texture = self.texture.copy()
         overlay = pygame.Surface(tinted_texture.get_size(), pygame.SRCALPHA)
@@ -53,10 +55,9 @@ class Platform:
                 surface.blit(tinted_texture, (x, self.rect.y))
 
     def __getattr__(self, attr):
-        # Delegate attribute lookup to the underlying rect so that properties
-        # such as .top, .bottom, etc. work.
+        # Delegate attribute lookup to the underlying rect so that properties such as
+        # .top, .bottom, etc. work.
         return getattr(self.rect, attr)
-
 
 class Ground(Platform):
     DEFAULT_IMAGE_PATH = "images/grass-platform.png"
@@ -69,22 +70,19 @@ class Ground(Platform):
         """
         if height is None:
             height = Ground.DEFAULT_HEIGHT
-        # Load and scale the ground texture to have the desired height while preserving aspect ratio.
         original = pygame.image.load(Ground.DEFAULT_IMAGE_PATH).convert_alpha()
         ratio = height / original.get_height()
         new_width = int(original.get_width() * ratio)
         texture = pygame.transform.smoothscale(original, (new_width, height))
         super().__init__(x, y, width, height, texture, tile_vertical=True)
 
-
-class StonePlatform(Platform):
+class StonePlatform(Platform, Draggable):
     DEFAULT_IMAGE_PATH = "images/stone-platform.png"
 
     def __init__(self, x, y, width, height):
         """
         Stone platforms tile their texture only horizontally.
         """
-        # Load and scale the stone texture so that its height matches the desired platform height.
         original = pygame.image.load(StonePlatform.DEFAULT_IMAGE_PATH).convert_alpha()
         ratio = height / original.get_height()
         new_width = int(original.get_width() * ratio)
