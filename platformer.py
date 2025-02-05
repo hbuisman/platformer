@@ -44,29 +44,122 @@ overlay.fill((255, 255, 255))
 overlay.set_alpha(80)  # Semi-transparent overlay
 
 # -----------------------
+# Custom Confirmation Dialog
+# -----------------------
+def custom_confirmation_dialog(message, use_title=True, opaque_background=False):
+    """
+    Display a custom, sleek confirmation dialog.
+    
+    Parameters:
+      - message: The text to display.
+      - use_title: If True, a "Confirm" title is shown above the message.
+      - opaque_background: If True, a solid black overlay is drawn behind the dialog.
+      
+    Returns:
+      True if the user confirms (clicks OK), False if cancelled (via Cancel or ESC).
+    """
+    dialog_width = 300
+    dialog_height = 150
+    dialog_rect = pygame.Rect((SCREEN_WIDTH // 2 - dialog_width // 2,
+                               SCREEN_HEIGHT // 2 - dialog_height // 2),
+                              (dialog_width, dialog_height))
+    dialog_panel = pygame_gui.elements.UIPanel(
+        relative_rect=dialog_rect,
+        manager=manager,
+        object_id="#custom_confirmation_dialog"
+    )
+    # Optionally display a title.
+    if use_title:
+        title_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((0, 10), (dialog_width, 30)),
+            text="Confirm",
+            container=dialog_panel,
+            manager=manager,
+            object_id="#confirmation_title"
+        )
+        msg_y = 50
+        msg_height = 40
+    else:
+        msg_y = 10
+        msg_height = 60
+    message_label = pygame_gui.elements.UILabel(
+        relative_rect=pygame.Rect((10, msg_y), (dialog_width - 20, msg_height)),
+        text=message,
+        container=dialog_panel,
+        manager=manager,
+        object_id="#confirmation_message"
+    )
+    # OK and Cancel buttons.
+    button_width = 100
+    button_height = 40
+    ok_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((dialog_width // 2 - button_width - 10, dialog_height - button_height - 10),
+                                  (button_width, button_height)),
+        text="OK",
+        container=dialog_panel,
+        manager=manager,
+        object_id="#confirmation_ok"
+    )
+    cancel_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((dialog_width // 2 + 10, dialog_height - button_height - 10),
+                                  (button_width, button_height)),
+        text="Cancel",
+        container=dialog_panel,
+        manager=manager,
+        object_id="#confirmation_cancel"
+    )
+    
+    confirmed = None
+    while confirmed is None:
+        time_delta = clock.tick(FPS) / 1000.0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                confirmed = False
+            manager.process_events(event)
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == ok_button:
+                    confirmed = True
+                elif event.ui_element == cancel_button:
+                    confirmed = False
+        manager.update(time_delta)
+        if opaque_background:
+            opaque = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            opaque.fill(BLACK)
+            screen.blit(opaque, (0, 0))
+        else:
+            screen.blit(background, (0, 0))
+            screen.blit(overlay, (0, 0))
+        manager.draw_ui(screen)
+        pygame.display.flip()
+    dialog_panel.kill()
+    return confirmed
+
+# -----------------------
 # Mode Selection UI using pygame_gui
 # -----------------------
 def mode_selection_loop():
-    # Create a panel to contain our buttons.
+    # Create a panel for mode selection.
     panel_width = 400
     panel_height = 300
     panel_rect = pygame.Rect((SCREEN_WIDTH // 2 - panel_width // 2,
-                               SCREEN_HEIGHT // 2 - panel_height // 2),
+                              SCREEN_HEIGHT // 2 - panel_height // 2),
                              (panel_width, panel_height))
-    panel = pygame_gui.elements.UIPanel(
+    mode_panel = pygame_gui.elements.UIPanel(
         relative_rect=panel_rect,
-        manager=manager
+        manager=manager,
+        object_id="#mode_selection_panel"
     )
     
-    # Title Label
     title_label = pygame_gui.elements.UILabel(
         relative_rect=pygame.Rect((0, 20), (panel_width, 40)),
         text='Select Game Mode',
-        container=panel,
+        container=mode_panel,
         manager=manager
     )
     
-    # Create buttons for each mode.
     button_width = 200
     button_height = 50
     spacing = 20
@@ -74,21 +167,21 @@ def mode_selection_loop():
         relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80),
                                   (button_width, button_height)),
         text='Free Play',
-        container=panel,
+        container=mode_panel,
         manager=manager
     )
     level_builder_button = pygame_gui.elements.UIButton(
         relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80 + button_height + spacing),
                                   (button_width, button_height)),
         text='Level Builder',
-        container=panel,
+        container=mode_panel,
         manager=manager
     )
     campaign_button = pygame_gui.elements.UIButton(
         relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80 + 2 * (button_height + spacing)),
                                   (button_width, button_height)),
         text='Campaign',
-        container=panel,
+        container=mode_panel,
         manager=manager
     )
     
@@ -99,8 +192,15 @@ def mode_selection_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            # In the main menu, if ESC is pressed, hide the mode panel and show a confirmation.
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                mode_panel.hide()  # Hide underlying UI
+                if custom_confirmation_dialog("Do you want to exit the game?", use_title=True, opaque_background=True):
+                    pygame.quit()
+                    sys.exit()
+                else:
+                    mode_panel.show()  # Re-show if cancelled
             manager.process_events(event)
-            
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == free_play_button:
                     selected_mode = "Free Play"
@@ -108,21 +208,21 @@ def mode_selection_loop():
                     selected_mode = "Level Builder"
                 elif event.ui_element == campaign_button:
                     selected_mode = "Campaign"
-                    
         manager.update(time_delta)
         screen.blit(background, (0, 0))
         screen.blit(overlay, (0, 0))
         manager.draw_ui(screen)
         pygame.display.flip()
-    
-    panel.kill()
+    mode_panel.kill()
     return selected_mode
 
 def show_message(message, duration=2000):
-    """Display a message (e.g. 'Coming soon!') for a given duration using pygame_gui."""
+    """Display a message (e.g. 'Coming soon!') for a given duration.
+       If ESC is pressed, return immediately."""
     panel = pygame_gui.elements.UIPanel(
         relative_rect=pygame.Rect((SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 - 50), (400, 100)),
-        manager=manager
+        manager=manager,
+        object_id="#message_panel"
     )
     msg_label = pygame_gui.elements.UILabel(
         relative_rect=pygame.Rect((0, 0), (400, 100)),
@@ -137,6 +237,9 @@ def show_message(message, duration=2000):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                panel.kill()
+                return
             manager.process_events(event)
         manager.update(time_delta)
         screen.blit(background, (0, 0))
@@ -149,13 +252,12 @@ def show_message(message, duration=2000):
 # Main Game Loop
 # -----------------------
 def main():
-    # Loop until Free Play is selected.
     selected_mode = mode_selection_loop()
     while selected_mode != "Free Play":
         show_message("Coming soon!", duration=2000)
         selected_mode = mode_selection_loop()
     
-    # Continue with Free Play mode.
+    # Free Play mode begins.
     player = Player(x=100, y=300, width=40, height=40)
     level = Level()
     inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -167,9 +269,18 @@ def main():
         for event in events:
             if event.type == pygame.QUIT:
                 running = False
+            # In Free Play mode, pressing ESC shows a confirmation to return to the main menu.
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                # (You may insert an exit dialog or inventory toggle here.)
-                pass
+                if custom_confirmation_dialog("Return to main menu?", use_title=False, opaque_background=False):
+                    selected_mode = mode_selection_loop()
+                    while selected_mode != "Free Play":
+                        show_message("Coming soon!", duration=2000)
+                        selected_mode = mode_selection_loop()
+                    # Reset game objects.
+                    player = Player(x=100, y=300, width=40, height=40)
+                    level = Level()
+                    inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
+                    continue
             inventory.handle_event(event, level, player)
         level.handle_mouse_events(events)
         player.handle_input()
