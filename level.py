@@ -74,7 +74,6 @@ class Level:
     def handle_mouse_events(self, events):
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # Use event.pos so that each object can handle the click event.
                 clicked_item = self.find_clicked_item(event.pos[0], event.pos[1])
                 if clicked_item and hasattr(clicked_item, "handle_click"):
                     action = clicked_item.handle_click(event)
@@ -93,7 +92,7 @@ class Level:
         if not self.dragging_item:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             hovered_slide = self.find_clicked_item(mouse_x, mouse_y)
-            if isinstance(hovered_slide, SlidePlatform):
+            if hovered_slide and isinstance(hovered_slide, SlidePlatform):
                 if not hasattr(hovered_slide, 'hover_timer'):
                     hovered_slide.hover_timer = 0
                 hovered_slide.hover_timer += 1
@@ -112,9 +111,9 @@ class Level:
         for tramp in self.trampolines:
             if tramp.rect.collidepoint(mouse_x, mouse_y):
                 return tramp
-        # Check slides
+        # Check slides (including if the click is on the flip icon)
         for s in self.slides:
-            if s.contains_point(mouse_x, mouse_y, threshold=8):
+            if s.contains_point(mouse_x, mouse_y, threshold=8) or s.flip_icon_contains_point(mouse_x, mouse_y):
                 return s
         # Check portals
         for portal in self.portals:

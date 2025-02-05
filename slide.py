@@ -115,7 +115,7 @@ class SlidePlatform(Draggable):
             if event.button == 1:
                 if self.flip_icon_rect.collidepoint(event.pos):
                     self.flip()
-                    return "handled"  # special behavior handled; no drag needed.
+                    return "handled"  # Special behavior handled; no drag needed.
                 else:
                     return super().handle_click(event)
             elif event.button == 3:
@@ -130,3 +130,7 @@ class SlidePlatform(Draggable):
         surface.blit(texture, self.rect)
         # Always draw the flip icon.
         surface.blit(self.rotate_icon, self.flip_icon_rect)
+
+    def flip_icon_contains_point(self, x: int, y: int) -> bool:
+        """Return True if the given point is within the flip icon area."""
+        return self.flip_icon_rect.collidepoint(x, y)
