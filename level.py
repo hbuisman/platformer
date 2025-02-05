@@ -1,4 +1,3 @@
-# level.py
 import pygame
 import math
 from slide import SlidePlatform
@@ -7,13 +6,14 @@ from elevator import Elevator, ElevatorPoint
 from star import Star
 from game_platform import Ground, StonePlatform
 from trampoline import Trampoline
-from draggable import Draggable  # For isinstance checks
+from draggable import Draggable  # For draggable functionality
 
 BLUE = (0, 0, 255)
 LILA = (200, 0, 200)  # New color for trampoline
 
-class Portal:
+class Portal(Draggable):
     def __init__(self, x, y, is_entrance=True, portal_id=1):
+        Draggable.__init__(self)
         if is_entrance:
             self.image = pygame.image.load('images/portal_entry.png').convert_alpha()
         else:
@@ -26,10 +26,9 @@ class Portal:
         self.portal_id = portal_id
         self.font = pygame.font.SysFont(None, 24)
 
-    def draw(self, surface, is_dragging=False):
-        if is_dragging:
-            tinted = self.image.copy()
-            tinted.fill((255, 0, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
+    def draw(self, surface):
+        if self.being_dragged:
+            tinted = self.get_tinted_surface(self.image)
             surface.blit(tinted, self.rect)
         else:
             surface.blit(self.image, self.rect)
@@ -47,7 +46,7 @@ class Level:
         platform_width = 225   # 1.5x original width
         platform_height = 30   # 1.5x original height
         
-        # Create platforms.
+        # Create platforms using our new classes.
         self.platforms = [
             Ground(0, screen_height - 50, screen_width),  # Ground platform
             StonePlatform(300, 600, platform_width, platform_height),
@@ -90,9 +89,10 @@ class Level:
                 if self.dragging_item and isinstance(self.dragging_item, Draggable):
                     self.dragging_item.update_drag(mouse_x, mouse_y)
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if self.dragging_item and isinstance(self.dragging_item, Draggable):
+                    self.dragging_item.end_drag()
                 self.dragging_item = None
         
-        # Handle hover timer for slides
         if not self.dragging_item:
             hovered_slide = self.find_clicked_item(mouse_x, mouse_y)
             if isinstance(hovered_slide, SlidePlatform):
@@ -106,7 +106,7 @@ class Level:
                     s.hover_timer = 0
 
     def find_clicked_item(self, mouse_x, mouse_y):
-        # Check platforms (skip the first if desired)
+        # Check stone platforms (skip the ground if desired)
         for p in self.platforms[1:]:
             if p.rect.collidepoint(mouse_x, mouse_y):
                 return p
@@ -140,38 +140,19 @@ class Level:
 
     def draw(self, surface):
         for platform in self.platforms:
-            if platform == self.dragging_item:
-                platform.draw_tinted(surface, (255, 0, 255, 128))
-            else:
-                platform.draw(surface)
+            platform.draw(surface)
         for slide in self.slides:
-            if slide == self.dragging_item:
-                slide.draw(surface, highlight=True)
-            else:
-                slide.draw(surface, highlight=False)
+            slide.draw(surface)
         for tramp in self.trampolines:
-            if tramp == self.dragging_item:
-                tinted = tramp.texture.copy()
-                overlay = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
-                overlay.fill((255, 0, 255, 128))
-                tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                surface.blit(tinted, tramp.rect)
-            else:
-                tramp.draw(surface)
+            tramp.draw(surface)
         for portal in self.portals:
-            portal.draw(surface, portal == self.dragging_item)
+            portal.draw(surface)
         for enemy in self.enemies:
-            if enemy == self.dragging_item:
-                enemy.draw(surface, is_dragging=True)
-            else:
-                enemy.draw(surface)
+            enemy.draw(surface)
         for elevator in self.elevators:
-            if isinstance(self.dragging_item, ElevatorPoint) and self.dragging_item in [elevator.start_point, elevator.end_point]:
-                elevator.draw(surface, self.dragging_item)
-            else:
-                elevator.draw(surface, None)
+            elevator.draw(surface)
         for star in self.stars:
-            star.draw(surface, star == self.dragging_item)
+            star.draw(surface)
 
     def remove_item(self, item):
         if item in self.platforms:
@@ -243,8 +224,7 @@ class Level:
             current_pos = elevator.platform_rect.center
             elevator_movements[elevator] = (current_pos[0] - prev_pos[0], current_pos[1] - prev_pos[1])
         for enemy in self.enemies:
-            is_dragging = enemy == self.dragging_item
-            enemy.update(self.platforms, self, elevator_movements, is_dragging)
+            enemy.update(self.platforms, self, elevator_movements)
         for star in self.stars[:]:
             if not star.collected and player.rect.colliderect(star.rect):
                 star.collected = True

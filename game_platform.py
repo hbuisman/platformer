@@ -1,4 +1,3 @@
-# game_platform.py
 import pygame
 from draggable import Draggable
 
@@ -32,13 +31,7 @@ class Platform:
                 surface.blit(self.texture, (x, self.rect.y))
 
     def draw_tinted(self, surface, tint_color):
-        """
-        Draw a tinted version of the platform.
-        
-        Args:
-            surface: The pygame.Surface to draw on.
-            tint_color: A (R,G,B,A) tuple used for the tint.
-        """
+        """Draw a tinted version of the platform."""
         tinted_texture = self.texture.copy()
         overlay = pygame.Surface(tinted_texture.get_size(), pygame.SRCALPHA)
         overlay.fill(tint_color)
@@ -55,8 +48,7 @@ class Platform:
                 surface.blit(tinted_texture, (x, self.rect.y))
 
     def __getattr__(self, attr):
-        # Delegate attribute lookup to the underlying rect so that properties such as
-        # .top, .bottom, etc. work.
+        # Delegate attribute lookup to the underlying rect so that properties such as .top, .bottom, etc. work.
         return getattr(self.rect, attr)
 
 class Ground(Platform):
@@ -83,8 +75,15 @@ class StonePlatform(Platform, Draggable):
         """
         Stone platforms tile their texture only horizontally.
         """
+        Draggable.__init__(self)
         original = pygame.image.load(StonePlatform.DEFAULT_IMAGE_PATH).convert_alpha()
         ratio = height / original.get_height()
         new_width = int(original.get_width() * ratio)
         texture = pygame.transform.smoothscale(original, (new_width, height))
         super().__init__(x, y, width, height, texture, tile_vertical=False)
+
+    def draw(self, surface):
+        if self.being_dragged:
+            self.draw_tinted(surface, (255, 0, 255, 128))
+        else:
+            super().draw(surface)

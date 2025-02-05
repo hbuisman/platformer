@@ -1,24 +1,23 @@
-# enemy.py
 import pygame
 from draggable import Draggable
 
 class Enemy(Draggable):
     def __init__(self, x, y, enemy_type):
+        Draggable.__init__(self)
         self.enemy_type = enemy_type
         self.image = pygame.image.load(f"images/enemy{enemy_type}.png").convert_alpha()
         self.image = pygame.transform.smoothscale(self.image, (120, 120))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        
         self.x_velocity = 0
         self.y_velocity = 0
         self.on_ground = False
         self.on_elevator = False
         self.elevator_offset = None
 
-    def update(self, platforms, level, elevator_movements, is_dragging=False):
-        if is_dragging:
+    def update(self, platforms, level, elevator_movements):
+        if self.being_dragged:
             return
         self.y_velocity += 0.5  # Gravity
         self.rect.y += self.y_velocity
@@ -78,12 +77,9 @@ class Enemy(Draggable):
                     self.y_velocity = -20  # Bounce force
                     self.on_ground = True
 
-    def draw(self, surface, is_dragging=False):
-        if is_dragging:
-            tinted = self.image.copy()
-            overlay = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
-            overlay.fill((255, 0, 255, 128))
-            tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    def draw(self, surface):
+        if self.being_dragged:
+            tinted = self.get_tinted_surface(self.image)
             surface.blit(tinted, self.rect)
         else:
             surface.blit(self.image, self.rect)

@@ -1,4 +1,3 @@
-# slide.py
 import pygame
 from dataclasses import dataclass
 from typing import Optional
@@ -6,13 +5,13 @@ from draggable import Draggable
 
 @dataclass
 class SlidePhysics:
-    """Physics data for a player on the slide."""
     alignment_y: float
     velocity_x: float
     velocity_y: float
 
 class SlidePlatform(Draggable):
     def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int):
+        Draggable.__init__(self)
         self.start_x = start_x
         self.start_y = start_y
         self.end_x = end_x
@@ -27,7 +26,7 @@ class SlidePlatform(Draggable):
     def _load_textures(self):
         original = pygame.image.load("images/slide.png").convert_alpha()
         height = 120
-        width = int(379 * (height / 349.0))  # Maintain aspect ratio
+        width = int(379 * (height / 349.0))
         self.original_texture = pygame.transform.smoothscale(original, (width, height))
         self.texture = self.original_texture  # Current texture
         self.flipped_texture = pygame.transform.flip(self.texture, True, False)
@@ -89,9 +88,9 @@ class SlidePlatform(Draggable):
         return SlidePhysics(alignment_y=align_y, velocity_x=velocity_x, velocity_y=velocity_y)
 
     def start_drag(self, mouse_x, mouse_y):
-        # Override: store offset relative to the slide's start point
         self.drag_offset_x = self.start_x - mouse_x
         self.drag_offset_y = self.start_y - mouse_y
+        self.being_dragged = True
 
     def update_drag(self, mouse_x, mouse_y):
         new_start_x = mouse_x + self.drag_offset_x
@@ -105,12 +104,11 @@ class SlidePlatform(Draggable):
         self.rect = self._calculate_rect()
         self._update_flip_icon_position()
 
-    def draw(self, surface, highlight: bool = False):
-        texture = self.texture.copy() if highlight else self.texture
-        if highlight:
-            overlay = pygame.Surface(texture.get_size(), pygame.SRCALPHA)
-            overlay.fill((255, 0, 255, 128))
-            texture.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    def draw(self, surface):
+        if self.being_dragged:
+            texture = self.get_tinted_surface(self.texture)
+        else:
+            texture = self.texture
         surface.blit(texture, self.rect)
         mouse_pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(mouse_pos):
