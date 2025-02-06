@@ -70,6 +70,7 @@ class Level:
         self.next_elevator_id = 1
         self.elevator_prev_positions = {}
         self.stars = []
+        self.trashes = []  # New list to hold Trash items
     
     def handle_mouse_events(self, events):
         for event in events:
@@ -133,6 +134,10 @@ class Level:
         for star in self.stars:
             if star.rect.collidepoint(mouse_x, mouse_y) and not star.collected:
                 return star
+        # Check trash items
+        for trash in self.trashes:
+            if trash.rect.collidepoint(mouse_x, mouse_y):
+                return trash
         return None
 
     def draw(self, surface):
@@ -148,6 +153,8 @@ class Level:
             enemy.draw(surface)
         for elevator in self.elevators:
             elevator.draw(surface)
+        for trash in self.trashes:  # New loop to draw trash items
+            trash.draw(surface)
         for star in self.stars:
             star.draw(surface)
 
@@ -170,6 +177,8 @@ class Level:
                     break
         elif item in self.stars:
             self.stars.remove(item)
+        elif item in self.trashes:  # New clause for trash
+            self.trashes.remove(item)
         if self.dragging_item == item:
             self.dragging_item = None
 
@@ -210,6 +219,11 @@ class Level:
 
     def add_star(self, x, y):
         self.stars.append(Star(x, y))
+
+    def add_trash(self, x, y):
+        from trash import Trash  # Import inside the method to avoid circular imports
+        new_trash = Trash(x, y)
+        self.trashes.append(new_trash)
 
     def update(self, player):
         elevator_movements = {}

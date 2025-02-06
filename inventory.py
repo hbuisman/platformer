@@ -54,6 +54,11 @@ ICONS = [
         "color": (100, 100, 255),
         "rect": pygame.Rect(0, 552, 112, 30),  # y from 522 to 552 (482+60+10)
         "image_path": "images/stone-platform.png"
+    },
+    {
+        "type": "trash",
+        "rect": pygame.Rect(0, 592, 40, 40),  # Positioned below elevator with a gap of 10px; size 40x40
+        "image_path": "images/trash.png"
     }
 ]
 
@@ -466,5 +471,7 @@ class InventoryPanel:
                         level.add_elevator(mx, my)
                     elif self.dragging_icon["type"] == "star":
                         level.add_star(mx, my)
+                    elif self.dragging_icon["type"] == "trash":
+                        level.add_trash(mx, my)  # New branch for trash item
                 # End drag
                 self.dragging_icon = None 

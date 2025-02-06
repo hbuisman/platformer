@@ -49,6 +49,13 @@ overlay.set_alpha(80)  # Semi-transparent overlay
 star_icon = pygame.image.load("images/star.png").convert_alpha()
 star_icon = pygame.transform.smoothscale(star_icon, (40, 40))
 
+# Load Trash Icon (for trash counter)
+trash_icon = pygame.image.load("images/trash.png").convert_alpha()
+trash_icon = pygame.transform.smoothscale(trash_icon, (35, 35))
+
+# Load Trash Sound (plays when trash is collected)
+trash_sound = pygame.mixer.Sound("sounds/crumple.wav")
+
 # -----------------------
 # Custom Confirmation Dialog
 # -----------------------
@@ -289,6 +296,7 @@ def main():
     
     # Free Play mode begins.
     player = Player(x=100, y=300, width=40, height=40)
+    player.trash_collected = 0  # Initialize trash counter
     level = Level()
     inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
     
@@ -308,6 +316,7 @@ def main():
                         show_message("Coming soon!", duration=2000)
                         selected_mode = mode_selection_loop()
                     player = Player(x=100, y=300, width=40, height=40)
+                    player.trash_collected = 0  # Reset trash counter
                     level = Level()
                     inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
                     continue
@@ -342,6 +351,14 @@ def main():
             player.handle_input()
         
         elevator_movements = level.update(player)
+        
+        # Check for trash collection
+        for trash in level.trashes[:]:
+            if player.rect.colliderect(trash.rect):
+                level.trashes.remove(trash)
+                player.trash_collected += 1
+                trash_sound.play()
+        
         player.update(level.platforms, level.slides, level.trampolines, level, elevator_movements)
         
         screen.blit(background, (0, 0))
@@ -350,13 +367,30 @@ def main():
         player.draw_hearts(screen)
         level.draw(screen)
         inventory.draw(screen)
-        # Draw star counter (icon and count)
+        # Draw combined counters for stars and trash in the top right
+        margin = 20
+        gap_inside = 10
+        block_gap = 20
+
         star_text = pygame.font.SysFont(None, 32).render(f"× {player.stars_collected}", True, BLACK)
-        total_width = 40 + star_text.get_width() + 10
-        star_x = inventory.x - total_width - 20
-        star_y = 20
-        screen.blit(star_icon, (star_x, star_y))
-        screen.blit(star_text, (star_x + 50, star_y + 10))
+        trash_text = pygame.font.SysFont(None, 32).render(f"× {player.trash_collected}", True, BLACK)
+
+        star_block_width = 40 + gap_inside + star_text.get_width()
+        trash_block_width = 35 + gap_inside + trash_text.get_width()  # trash icon is 35 wide
+        total_counters_width = star_block_width + block_gap + trash_block_width
+
+        # Instead of SCREEN_WIDTH, use inventory.x so that the counters slide with the inventory panel.
+        start_x = inventory.x - total_counters_width - margin
+        y = 20
+
+        # Draw star counter block (icon and text)
+        screen.blit(star_icon, (start_x, y))
+        screen.blit(star_text, (start_x + 40 + gap_inside, y + 10))
+
+        # Draw trash counter block (icon and text)
+        trash_block_x = start_x + star_block_width + block_gap
+        screen.blit(trash_icon, (trash_block_x, y + (40 - 35) // 2))  # center vertically since trash icon is smaller
+        screen.blit(trash_text, (trash_block_x + 35 + gap_inside, y + 10))
         
         pygame.display.flip()
         manager.update(time_delta)
