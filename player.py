@@ -10,7 +10,7 @@ JUMP_FORCE = 10
 class Player(PhysicsObject):
     def __init__(self, x, y, width, height):
         super().__init__()
-        # Player’s rectangle is twice the base size.
+        # Player's rectangle is twice the base size.
         self.rect = pygame.Rect(x, y, width * 2, height * 2)
         self.jumps_left = 2
         self.on_slide = False
@@ -170,3 +170,27 @@ class Player(PhysicsObject):
             return
         for i in range(self.lives):
             surface.blit(self.heart_image, (10 + i * 50, 10))
+
+    def change_character(self, new_sprite_path, sound_data):
+        """Update the player's appearance and sound effects"""
+        # Load and scale new character assets
+        original_image = pygame.image.load(new_sprite_path).convert_alpha()
+        self.image = pygame.transform.smoothscale(original_image, (self.rect.width, self.rect.height))
+        
+        # Update directional images
+        self.image_right = self.image
+        self.image_left = pygame.transform.flip(self.image, True, False)
+        
+        # Update all sounds
+        self.ouch_sound = pygame.mixer.Sound(sound_data["ouch_sound"])
+        self.boing_sound = pygame.mixer.Sound(sound_data["boing_sound"])
+        self.portal_sound = pygame.mixer.Sound(sound_data["portal_sound"])
+        
+        # Preserve position with original size
+        old_center = self.rect.center
+        self.rect = self.image.get_rect()
+        self.rect.center = old_center
+        
+        # Maintain original collision size
+        if hasattr(self, 'hitbox'):
+            self.hitbox = self.rect.inflate(-20, -10)

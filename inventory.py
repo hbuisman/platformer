@@ -71,16 +71,20 @@ CHARACTERS = [
         "id": "big",
         "portrait": pygame.image.load("images/player_big_portrait.png"),
         "sprite": "images/player_big.png",
-        "sound": "sounds/big_player_ouch.wav",
-        "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),  # Now uses defined constant
+        "ouch_sound": "sounds/big_player_ouch.wav",
+        "boing_sound": "sounds/big_player_boing.wav",
+        "portal_sound": "sounds/big_player_portal.wav",
+        "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
         "hovered": False
     },
     {
         "id": "small",
         "portrait": pygame.image.load("images/player_small_portrait.png"),
         "sprite": "images/player_small.png",
-        "sound": "sounds/small_player_ouch.wav",
-        "rect": pygame.Rect(70, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),  # 60+10 padding
+        "ouch_sound": "sounds/small_player_ouch.wav",
+        "boing_sound": "sounds/small_player_boing.wav",
+        "portal_sound": "sounds/small_player_portal.wav",
+        "rect": pygame.Rect(70, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
         "hovered": False
     }
 ]
@@ -419,9 +423,15 @@ class InventoryPanel:
             for char in CHARACTERS:
                 rect_copy = char["rect"].copy()
                 rect_copy.x += self.x
-                rect_copy.y += self.char_section_y  # Add section Y offset
+                rect_copy.y += self.char_section_y
                 if rect_copy.collidepoint(event.pos):
-                    player.change_character(char["sprite"], char["sound"])
+                    # Pass all sound data as a dictionary
+                    sound_data = {
+                        "ouch_sound": char["ouch_sound"],
+                        "boing_sound": char["boing_sound"],
+                        "portal_sound": char["portal_sound"]
+                    }
+                    player.change_character(char["sprite"], sound_data)
                     return
             
             # Check if clicked on any icon in the panel
