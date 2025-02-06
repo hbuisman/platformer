@@ -141,6 +141,16 @@ class Player(PhysicsObject):
                 self.lose_life()
                 break
 
+    def handle_vertical_collisions(self, platforms):
+        initial_vy = self.y_velocity
+        # Defer collision handling to the parent PhysicsObject implementation.
+        super().handle_vertical_collisions(platforms)
+        # If a head collision occurred (player bumping upward),
+        # just play the ouch sound without losing a life.
+        if initial_vy < 0 and self.y_velocity == 0:
+            if self.invulnerable_timer <= 0:
+                self.ouch_sound.play()
+
     def lose_life(self):
         if self.invulnerable_timer <= 0:
             self.lives -= 1
