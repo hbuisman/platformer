@@ -285,12 +285,33 @@ def main():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_i:
                 inventory.toggle(SCREEN_WIDTH)
             inventory.handle_event(event, level, player)
+            
+            # Wenn auf den Spieler geklickt wird, alle gegnerischen Steuerungen zurücksetzen.
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if player.rect.collidepoint(event.pos):
+                    for enemy in level.enemies:
+                        enemy.controlled = False
         
         # Add this line to update inventory panel position
         inventory.update()
         
         level.handle_mouse_events(events)
-        player.handle_input()
+        # Alte Zeile:
+        # player.handle_input()
+
+        # Neue Logik: Falls ein Monster gesteuert wird, dieses bewegen,
+        # sonst den Spieler steuern.
+        controlled_enemy = None
+        for enemy in level.enemies:
+            if getattr(enemy, "controlled", False):
+                controlled_enemy = enemy
+                break
+
+        if controlled_enemy:
+            controlled_enemy.handle_input()
+        else:
+            player.handle_input()
+        
         elevator_movements = level.update(player)
         player.update(level.platforms, level.slides, level.trampolines, level, elevator_movements)
         

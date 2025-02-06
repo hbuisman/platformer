@@ -15,6 +15,7 @@ class Enemy(PhysicsObject, Draggable):
         self.on_ground = False
         self.on_elevator = False
         self.elevator_offset = None
+        self.controlled = False
 
     def update(self, platforms, level, elevator_movements):
         if self.being_dragged:
@@ -51,3 +52,21 @@ class Enemy(PhysicsObject, Draggable):
             surface.blit(tinted, self.rect)
         else:
             surface.blit(self.image, self.rect)
+
+    def handle_click(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self.controlled = True
+                return "controlled"
+            elif event.button == 3:
+                return "remove"
+        return None
+
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.x_velocity = -5
+        elif keys[pygame.K_RIGHT]:
+            self.x_velocity = 5
+        else:
+            self.x_velocity = 0
