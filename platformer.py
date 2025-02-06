@@ -145,49 +145,40 @@ def custom_confirmation_dialog(message, use_title=True, opaque_background=False)
 # Mode Selection UI using pygame_gui
 # -----------------------
 def mode_selection_loop():
-    panel_width = 400
-    panel_height = 300
-    panel_rect = pygame.Rect((SCREEN_WIDTH // 2 - panel_width // 2,
-                              SCREEN_HEIGHT // 2 - panel_height // 2),
-                             (panel_width, panel_height))
-    mode_panel = pygame_gui.elements.UIPanel(
-        relative_rect=panel_rect,
-        manager=manager,
-        object_id="#mode_selection_panel"
-    )
+    # Load and scale the menu background image.
+    menu_image = pygame.image.load("images/menu.png").convert_alpha()
+    # Use the original menu image height (1536) to compute the scale factor for screen height.
+    scale_factor = SCREEN_HEIGHT / 1536  
+    menu_width = int(3072 * scale_factor)
+    menu_scaled = pygame.transform.smoothscale(menu_image, (menu_width, SCREEN_HEIGHT))
+
+    # Calculate horizontal crop offset if the scaled width is larger than the screen width.
+    crop_offset = (menu_width - SCREEN_WIDTH) // 2 if menu_width > SCREEN_WIDTH else 0
+
+    # Load and scale button images.
+    free_play_img = pygame.image.load("images/free_play_button.png").convert_alpha()
+    free_play_img = pygame.transform.smoothscale(free_play_img, (int(507 * scale_factor), int(246 * scale_factor)))
     
-    title_label = pygame_gui.elements.UILabel(
-        relative_rect=pygame.Rect((0, 20), (panel_width, 40)),
-        text='Select Game Mode',
-        container=mode_panel,
-        manager=manager
-    )
+    level_builder_img = pygame.image.load("images/level_builder_button.png").convert_alpha()
+    level_builder_img = pygame.transform.smoothscale(level_builder_img, (int(522 * scale_factor), int(252 * scale_factor)))
     
-    button_width = 200
-    button_height = 50
-    spacing = 20
-    free_play_button = pygame_gui.elements.UIButton(
-        relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80),
-                                  (button_width, button_height)),
-        text='Free Play',
-        container=mode_panel,
-        manager=manager
-    )
-    level_builder_button = pygame_gui.elements.UIButton(
-        relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80 + button_height + spacing),
-                                  (button_width, button_height)),
-        text='Level Builder',
-        container=mode_panel,
-        manager=manager
-    )
-    campaign_button = pygame_gui.elements.UIButton(
-        relative_rect=pygame.Rect(((panel_width - button_width) // 2, 80 + 2 * (button_height + spacing)),
-                                  (button_width, button_height)),
-        text='Campaign',
-        container=mode_panel,
-        manager=manager
-    )
-    
+    campaign_img = pygame.image.load("images/campaign_button.png").convert_alpha()
+    campaign_img = pygame.transform.smoothscale(campaign_img, (int(561 * scale_factor), int(267 * scale_factor)))
+
+    # Calculate button positions using scaled coordinates (from the original menu image positions)
+    # and adjust for the correct cropping.
+    free_play_rect = free_play_img.get_rect()
+    free_play_rect.x = int(1270 * scale_factor) - crop_offset
+    free_play_rect.y = int(280 * scale_factor)
+
+    level_builder_rect = level_builder_img.get_rect()
+    level_builder_rect.x = int(1263 * scale_factor) - crop_offset
+    level_builder_rect.y = int(504 * scale_factor)
+
+    campaign_rect = campaign_img.get_rect()
+    campaign_rect.x = int(1245 * scale_factor) - crop_offset
+    campaign_rect.y = int(745 * scale_factor)
+
     selected_mode = None
     while selected_mode is None:
         time_delta = clock.tick(FPS) / 1000.0
@@ -195,28 +186,28 @@ def mode_selection_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                mode_panel.hide()
-                if custom_confirmation_dialog("Do you want to exit the game?", use_title=True, opaque_background=True):
-                    pygame.quit()
-                    sys.exit()
-                else:
-                    mode_panel.show()
-            manager.process_events(event)
-            if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                if event.ui_element == free_play_button:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if custom_confirmation_dialog("Do you want to exit the game?", use_title=True, opaque_background=True):
+                        pygame.quit()
+                        sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
+                if free_play_rect.collidepoint(mouse_pos):
                     selected_mode = "Free Play"
-                elif event.ui_element == level_builder_button:
+                elif level_builder_rect.collidepoint(mouse_pos):
                     selected_mode = "Level Builder"
-                elif event.ui_element == campaign_button:
+                elif campaign_rect.collidepoint(mouse_pos):
                     selected_mode = "Campaign"
-        manager.update(time_delta)
-        screen.blit(background, (0, 0))
-        screen.blit(overlay, (0, 0))
-        manager.draw_ui(screen)
+
+        # Draw the menu background (cropped to center horizontally) and the button images.
+        screen.fill(BLACK)
+        screen.blit(menu_scaled, (-crop_offset, 0))
+        screen.blit(free_play_img, free_play_rect)
+        screen.blit(level_builder_img, level_builder_rect)
+        screen.blit(campaign_img, campaign_rect)
+
         pygame.display.flip()
-    
-    mode_panel.kill()
     return selected_mode
 
 def show_message(message, duration=2000):
