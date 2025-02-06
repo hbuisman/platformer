@@ -71,6 +71,13 @@ class Level:
         self.elevator_prev_positions = {}
         self.stars = []
         self.trashes = []  # New list to hold Trash items
+        
+        # Add a few default collectible stars and trash items.
+        # Positions are chosen arbitrarily; adjust as desired.
+        self.add_star(400, 300)
+        self.add_star(800, 250)
+        self.add_trash(600, 350)
+        self.add_trash(750, 400)
     
     def handle_mouse_events(self, events):
         for event in events:

@@ -285,6 +285,22 @@ def show_message(message, duration=2000):
         pygame.display.flip()
     panel.kill()
 
+def display_overlay_message(message, duration=3000):
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    overlay.set_alpha(180)  # Adjust transparency as needed
+    overlay.fill((50, 50, 50))  # Slightly transparent grey
+    screen.blit(overlay, (0, 0))
+    text = pygame.font.SysFont(None, 64).render(message, True, (245, 245, 245))  # Soft white text
+    text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    screen.blit(text, text_rect)
+    pygame.display.flip()
+    start_time = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start_time < duration:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return
+        pygame.time.delay(10)
+
 # -----------------------
 # Main Game Loop
 # -----------------------
@@ -393,6 +409,27 @@ def main():
         screen.blit(trash_text, (trash_block_x + 35 + gap_inside, y + 10))
         
         pygame.display.flip()
+        
+        # Check for Game Over: if player's lives are finished, display message and reset game.
+        if player.lives <= 0:
+            display_overlay_message("Game Over", duration=3000)
+            selected_mode = mode_selection_loop()
+            player = Player(x=100, y=300, width=40, height=40)
+            player.trash_collected = 0  # Reset trash counter
+            level = Level()
+            inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
+            continue
+        
+        # Check for Level Win: if all trash has been collected, display win message and reset game.
+        if len(level.trashes) == 0:
+            display_overlay_message("You Win!", duration=3000)
+            selected_mode = mode_selection_loop()
+            player = Player(x=100, y=300, width=40, height=40)
+            player.trash_collected = 0
+            level = Level()
+            inventory = InventoryPanel(SCREEN_WIDTH, SCREEN_HEIGHT)
+            continue
+        
         manager.update(time_delta)
         
     pygame.quit()

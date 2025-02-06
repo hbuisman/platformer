@@ -1,12 +1,4 @@
-Add an elevator element to the game
- * You can move the start and end point of the elevator
- * The elevator will move between the start and end point
- * The elevator will move the player up and down
-Make the goal of the game to collect garbage.
- * A level has a certain amount of garbage that needs to be collected.
- * The player then needs to move it to the garbage can.
-The player can also collect stars.
- * Stars can be used to buy items in the shop.
+Add a shop where you can exchange stars for items
  * The shop is located in the bottom left corner of the screen.
  * The player can buy new characters with stars.
 Add a gun to the shop
