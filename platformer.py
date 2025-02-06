@@ -142,6 +142,18 @@ def custom_confirmation_dialog(message, use_title=True, opaque_background=False)
     return confirmed
 
 # -----------------------
+# Helper function: Same as draggable.py's get_tinted_surface but at module level.
+def get_tinted_surface(surface, tint_color=(255, 255, 255, 80)):
+    """
+    Return a tinted copy of the given surface, highlighting only its non-transparent parts.
+    """
+    tinted = surface.copy()
+    overlay = pygame.Surface(tinted.get_size(), pygame.SRCALPHA)
+    overlay.fill(tint_color)
+    tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    return tinted
+
+# -----------------------
 # Mode Selection UI using pygame_gui
 # -----------------------
 def mode_selection_loop():
@@ -165,8 +177,7 @@ def mode_selection_loop():
     campaign_img = pygame.image.load("images/campaign_button.png").convert_alpha()
     campaign_img = pygame.transform.smoothscale(campaign_img, (int(561 * scale_factor), int(267 * scale_factor)))
 
-    # Calculate button positions using scaled coordinates (from the original menu image positions)
-    # and adjust for the correct cropping.
+    # Calculate button positions using scaled coordinates.
     free_play_rect = free_play_img.get_rect()
     free_play_rect.x = int(1270 * scale_factor) - crop_offset
     free_play_rect.y = int(280 * scale_factor)
@@ -178,6 +189,11 @@ def mode_selection_loop():
     campaign_rect = campaign_img.get_rect()
     campaign_rect.x = int(1245 * scale_factor) - crop_offset
     campaign_rect.y = int(745 * scale_factor)
+
+    # Precompute tinted versions of the button images.
+    free_play_tinted = get_tinted_surface(free_play_img, (255, 255, 255, 80))
+    level_builder_tinted = get_tinted_surface(level_builder_img, (255, 255, 255, 80))
+    campaign_tinted = get_tinted_surface(campaign_img, (255, 255, 255, 80))
 
     selected_mode = None
     while selected_mode is None:
@@ -200,12 +216,34 @@ def mode_selection_loop():
                 elif campaign_rect.collidepoint(mouse_pos):
                     selected_mode = "Campaign"
 
+        # Update mouse cursor and highlight buttons on hover.
+        mouse_pos = pygame.mouse.get_pos()
+        if free_play_rect.collidepoint(mouse_pos) or level_builder_rect.collidepoint(mouse_pos) or campaign_rect.collidepoint(mouse_pos):
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
         # Draw the menu background (cropped to center horizontally) and the button images.
         screen.fill(BLACK)
         screen.blit(menu_scaled, (-crop_offset, 0))
-        screen.blit(free_play_img, free_play_rect)
-        screen.blit(level_builder_img, level_builder_rect)
-        screen.blit(campaign_img, campaign_rect)
+
+        # Draw free play button; if hovered, use precomputed tinted version
+        if free_play_rect.collidepoint(mouse_pos):
+            screen.blit(free_play_tinted, free_play_rect)
+        else:
+            screen.blit(free_play_img, free_play_rect)
+
+        # Draw level builder button; if hovered, use precomputed tinted version
+        if level_builder_rect.collidepoint(mouse_pos):
+            screen.blit(level_builder_tinted, level_builder_rect)
+        else:
+            screen.blit(level_builder_img, level_builder_rect)
+
+        # Draw campaign button; if hovered, use precomputed tinted version
+        if campaign_rect.collidepoint(mouse_pos):
+            screen.blit(campaign_tinted, campaign_rect)
+        else:
+            screen.blit(campaign_img, campaign_rect)
 
         pygame.display.flip()
     return selected_mode
