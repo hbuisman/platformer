@@ -423,14 +423,13 @@ class InventoryPanel:
                 self.scroll_offset += event.y * self.scroll_speed
                 self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
         
-        # Character clicks need offset for section position
+        # Process character clicks (if applicable)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for char in CHARACTERS:
                 rect_copy = char["rect"].copy()
                 rect_copy.x += self.x
                 rect_copy.y += self.char_section_y
                 if rect_copy.collidepoint(event.pos):
-                    # Pass all sound data as a dictionary
                     sound_data = {
                         "ouch_sound": char["ouch_sound"],
                         "boing_sound": char["boing_sound"],
@@ -439,19 +438,21 @@ class InventoryPanel:
                     player.change_character(char["sprite"], sound_data)
                     return
             
-            # Check if clicked on any icon in the panel
+            # Check if clicked on any icon in the panel.
             mx, my = event.pos
             for icon in ICONS:
-                # Calc absolute rect on screen
                 abs_rect = icon["rect"].copy()
                 abs_rect.x += self.x
                 if abs_rect.collidepoint(mx, my):
-                    self.dragging_icon = icon
+                    # For any icon, assign its type as the active tool.
+                    level.current_tool = icon["type"]
+                    # Optionally, you might also want to visually highlight the selected icon.
+                    self.dragging_icon = icon  # keep this assignment if you need drag-drop behavior later.
                     break
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.dragging_icon:
-                # If we released outside the panel, add item to the level
+                # If released outside the panel, add item to the level using the regular method.
                 mx, my = event.pos
                 panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
                 if not panel_rect.collidepoint(mx, my):
@@ -472,6 +473,5 @@ class InventoryPanel:
                     elif self.dragging_icon["type"] == "star":
                         level.add_star(mx, my)
                     elif self.dragging_icon["type"] == "trash":
-                        level.add_trash(mx, my)  # New branch for trash item
-                # End drag
+                        level.add_trash(mx, my)
                 self.dragging_icon = None 

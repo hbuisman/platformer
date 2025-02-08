@@ -37,7 +37,7 @@ class Portal(Draggable):
         surface.blit(text, text_rect)
 
 class Level:
-    def __init__(self):
+    def __init__(self, builder_mode=False):
         screen = pygame.display.get_surface()
         screen_width = screen.get_width()
         screen_height = screen.get_height()
@@ -78,6 +78,11 @@ class Level:
         self.add_star(800, 250)
         self.add_trash(600, 350)
         self.add_trash(750, 400)
+        
+        # Initialize tool state for level builder.
+        self.current_tool = None
+        self.last_spray_time = 0
+        self.spray_interval = 100  # milliseconds between placements in spray mode
     
     def handle_mouse_events(self, events):
         for event in events:
@@ -92,10 +97,41 @@ class Level:
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging_item and isinstance(self.dragging_item, Draggable):
                     self.dragging_item.update_drag(event.pos[0], event.pos[1])
+                keys = pygame.key.get_pressed()
+                if self.current_tool is not None and (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]):
+                    now = pygame.time.get_ticks()
+                    if now - self.last_spray_time > self.spray_interval:
+                        self.last_spray_time = now
+                        import random
+                        offset_x = random.randint(-5, 5)
+                        offset_y = random.randint(-5, 5)
+                        x, y = event.pos
+                        new_x = x + offset_x
+                        new_y = y + offset_y
+                        tool = self.current_tool
+                        if tool == "star":
+                            self.add_star(new_x, new_y)
+                        elif tool == "platform":
+                            self.add_platform(new_x, new_y)
+                        elif tool == "slide":
+                            self.add_slide(new_x, new_y)
+                        elif tool == "trampoline":
+                            self.add_trampoline(new_x, new_y)
+                        elif tool == "portal":
+                            self.add_portal(new_x, new_y)
+                        elif tool == "enemy1":
+                            self.add_enemy(new_x, new_y, 1)
+                        elif tool == "enemy2":
+                            self.add_enemy(new_x, new_y, 2)
+                        elif tool == "elevator":
+                            self.add_elevator(new_x, new_y)
+                        elif tool == "trash":
+                            self.add_trash(new_x, new_y)
             elif event.type == pygame.MOUSEBUTTONUP:
                 if self.dragging_item and isinstance(self.dragging_item, Draggable):
                     self.dragging_item.end_drag()
                 self.dragging_item = None
+                self.current_tool = None
         
         if not self.dragging_item:
             mouse_x, mouse_y = pygame.mouse.get_pos()
