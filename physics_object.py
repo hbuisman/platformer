@@ -51,12 +51,16 @@ class PhysicsObject:
                     self.on_ground = False
 
     def check_portals(self, portals, level):
+        teleported = False
         for portal in portals:
             if hasattr(portal, 'is_entrance') and portal.is_entrance and self.rect.colliderect(portal.rect):
                 exit_portal = level.find_portal_pair(portal)
                 if exit_portal:
                     self.rect.centerx = exit_portal.rect.centerx
                     self.rect.bottom = exit_portal.rect.bottom
+                    teleported = True
+        if teleported and hasattr(self, "portal_sound"):
+            self.portal_sound.play()
 
     def update_physics(self, platforms, trampolines, portals, level):
         self.apply_gravity()

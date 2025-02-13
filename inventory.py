@@ -89,7 +89,17 @@ CHARACTERS = [
         "ouch_sound": "sounds/small_player_ouch.wav",
         "boing_sound": "sounds/small_player_boing.wav",
         "portal_sound": "sounds/small_player_portal.wav",
-        "rect": pygame.Rect(70, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
+        "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
+        "hovered": False
+    },
+    {
+        "id": "daniel",
+        "portrait": pygame.image.load("images/player_daniel_portrait.png"),
+        "sprite": "images/player_daniel.png",
+        "ouch_sound": "sounds/daniel_player_ouch.wav",
+        "boing_sound": "sounds/daniel_player_boing.wav",
+        "portal_sound": "sounds/daniel_player_portal.wav",
+        "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
         "hovered": False
     }
 ]
@@ -142,8 +152,8 @@ class InventoryPanel:
 
         # Scale portrait images
         for char in CHARACTERS:
-            char["portrait"] = pygame.transform.smoothscale(char["portrait"], 
-                                                          (PORTRAIT_SIZE, PORTRAIT_SIZE))
+            char["portrait"] = pygame.transform.smoothscale(char["portrait"],
+                                                            (PORTRAIT_SIZE, PORTRAIT_SIZE))
 
         # Load and scale textures for inventory icons
         self.textures = {}
@@ -206,13 +216,14 @@ class InventoryPanel:
         available_height = screen_height - self.char_section_height
         self.max_scroll = max(0, self.content_height - available_height)
         
-        # Center character portraits in their section
-        char_area_width = self.width
-        total_char_width = len(CHARACTERS) * PORTRAIT_SIZE + (len(CHARACTERS)-1)*10
-        start_x = (char_area_width - total_char_width) // 2
-        for i, char in enumerate(CHARACTERS):
-            char["rect"].x = start_x + i*(PORTRAIT_SIZE + 10)
-            char["rect"].y = 20  # Within character section
+        # Setup character selection horizontal scrolling parameters
+        self.char_total_width = len(CHARACTERS) * PORTRAIT_SIZE + (len(CHARACTERS) - 1) * 10
+        if self.char_total_width <= self.width:
+            self.char_base_x = (self.width - self.char_total_width) // 2
+        else:
+            self.char_base_x = 0
+        self.char_scroll_offset = 0
+        self.char_max_scroll = max(0, self.char_total_width - self.width)
 
     def toggle(self, screen_width):
         self.open = not self.open
@@ -240,19 +251,17 @@ class InventoryPanel:
                         break
 
     def update_character_hover_states(self, mouse_pos):
-        """Updated to only check bottom section"""
+        """Updated to only check bottom section with horizontal scrolling."""
         mx, my = mouse_pos
         is_hovering_any = False
-        
-        for char in CHARACTERS:
+        for i, char in enumerate(CHARACTERS):
             rect_copy = char["rect"].copy()
-            rect_copy.x += self.x
-            rect_copy.y += self.char_section_y  # Offset to bottom section
+            # Recalculate x using the base value, index spacing, and current scroll offset
+            rect_copy.x = self.char_base_x + i * (PORTRAIT_SIZE + 10) + self.char_scroll_offset + self.x
+            rect_copy.y = 20 + self.char_section_y  # fixed vertical position within character section
             char["hovered"] = self.open and rect_copy.collidepoint(mx, my)
             if char["hovered"]:
                 is_hovering_any = True
-        
-        # Set cursor
         pygame.mouse.set_cursor(HAND_CURSOR if is_hovering_any else DEFAULT_CURSOR)
 
     def update(self):
@@ -383,12 +392,10 @@ class InventoryPanel:
         surface.blit(char_bg, (self.x, self.char_section_y))
         
         # Draw character portraits
-        for char in CHARACTERS:
+        for i, char in enumerate(CHARACTERS):
             rect_copy = char["rect"].copy()
-            rect_copy.x += self.x
-            rect_copy.y += self.char_section_y  # Offset to bottom section
-            
-            # Border and portrait
+            rect_copy.x = self.char_base_x + i * (PORTRAIT_SIZE + 10) + self.char_scroll_offset + self.x
+            rect_copy.y = 20 + self.char_section_y  # offset to bottom section
             border_color = BUTTON_HOVER_COLOR if char["hovered"] else BUTTON_BORDER_COLOR
             pygame.draw.rect(surface, border_color, rect_copy, BUTTON_BORDER_WIDTH)
             surface.blit(char["portrait"], rect_copy)
@@ -417,18 +424,24 @@ class InventoryPanel:
             pygame.mouse.set_cursor(DEFAULT_CURSOR)
             return
         
-        # Handle mouse wheel for scrolling
         if event.type == pygame.MOUSEWHEEL:
             if self.open:
-                self.scroll_offset += event.y * self.scroll_speed
-                self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+                mx, my = pygame.mouse.get_pos()
+                if my >= self.char_section_y:
+                    # Scroll horizontally for character selection
+                    self.char_scroll_offset -= event.y * self.scroll_speed
+                    self.char_scroll_offset = max(-self.char_max_scroll, min(self.char_scroll_offset, 0))
+                else:
+                    # Vertical scroll for icons
+                    self.scroll_offset += event.y * self.scroll_speed
+                    self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
         
         # Process character clicks (if applicable)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for char in CHARACTERS:
+            for i, char in enumerate(CHARACTERS):
                 rect_copy = char["rect"].copy()
-                rect_copy.x += self.x
-                rect_copy.y += self.char_section_y
+                rect_copy.x = self.char_base_x + i * (PORTRAIT_SIZE + 10) + self.char_scroll_offset + self.x
+                rect_copy.y = 20 + self.char_section_y
                 if rect_copy.collidepoint(event.pos):
                     sound_data = {
                         "ouch_sound": char["ouch_sound"],
@@ -446,13 +459,11 @@ class InventoryPanel:
                 if abs_rect.collidepoint(mx, my):
                     # For any icon, assign its type as the active tool.
                     level.current_tool = icon["type"]
-                    # Optionally, you might also want to visually highlight the selected icon.
-                    self.dragging_icon = icon  # keep this assignment if you need drag-drop behavior later.
+                    self.dragging_icon = icon  # for drag-drop behavior
                     break
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.dragging_icon:
-                # If released outside the panel, add item to the level using the regular method.
                 mx, my = event.pos
                 panel_rect = pygame.Rect(self.x, 0, self.width, self.height)
                 if not panel_rect.collidepoint(mx, my):
