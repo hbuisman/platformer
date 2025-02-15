@@ -71,6 +71,7 @@ class Level:
         self.elevator_prev_positions = {}
         self.stars = []
         self.trashes = []  # New list to hold Trash items
+        self.bullets = []  # <--- NEW: List to track active bullets
         
         # Add a few default collectible stars and trash items.
         # Positions are chosen arbitrarily; adjust as desired.
@@ -200,6 +201,9 @@ class Level:
             trash.draw(surface)
         for star in self.stars:
             star.draw(surface)
+        # --- NEW: Draw bullets ---
+        for bullet in self.bullets:
+            bullet.draw(surface)
 
     def remove_item(self, item):
         if item in self.platforms:
@@ -285,6 +289,31 @@ class Level:
                 player.stars_collected += 1
                 player.star_sound.play()
                 self.stars.remove(star)
+        
+        # --- NEW: Update bullets ---
+        screen_obj = pygame.display.get_surface()
+        screen_width, screen_height = screen_obj.get_width(), screen_obj.get_height()
+        for bullet in self.bullets[:]:
+            bullet.update()
+            # Remove bullet if off screen
+            if bullet.is_off_screen(screen_width, screen_height):
+                self.bullets.remove(bullet)
+                continue
+            # Remove bullet if it hits a platform
+            for platform in self.platforms:
+                if bullet.rect.colliderect(platform.rect):
+                    if bullet in self.bullets:
+                        self.bullets.remove(bullet)
+                    break
+            else:
+                # Check collision with enemies
+                for enemy in self.enemies[:]:
+                    if bullet.rect.colliderect(enemy.rect):
+                        self.enemies.remove(enemy)
+                        if bullet in self.bullets:
+                            self.bullets.remove(bullet)
+                        break
+        # --- End bullet update ---
         return elevator_movements
 
     def check_collisions(self, player_rect):

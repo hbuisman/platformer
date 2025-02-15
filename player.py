@@ -10,13 +10,14 @@ JUMP_FORCE = 10
 class Player(PhysicsObject):
     def __init__(self, x, y, width, height):
         super().__init__()
-        # Player's rectangle is twice the base size.
-        self.rect = pygame.Rect(x, y, width * 2, height * 2)
+        # Increase player size: scale factor increased from 2 to 2.5
+        player_scale = 2.5  # Now the player is a tad larger
+        self.rect = pygame.Rect(x, y, int(width * player_scale), int(height * player_scale))
         self.jumps_left = 2
         self.on_slide = False
 
         self.image = pygame.image.load("images/player_big.png").convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (width * 2, height * 2))
+        self.image = pygame.transform.smoothscale(self.image, (int(width * player_scale), int(height * player_scale)))
         self.image_right = self.image
         self.image_left = pygame.transform.flip(self.image, True, False)
         self.facing_right = True
@@ -25,8 +26,8 @@ class Player(PhysicsObject):
         self.boing_sound = pygame.mixer.Sound("sounds/big_player_boing.wav")
         self.portal_sound = pygame.mixer.Sound("sounds/big_player_portal.wav")
 
-        self.width = width * 2
-        self.height = height * 2
+        self.width = int(width * player_scale)
+        self.height = int(height * player_scale)
         self.lives = 3
         self.invulnerable_timer = 0
         self.game_over = False
@@ -37,6 +38,16 @@ class Player(PhysicsObject):
         self.on_elevator = False
         self.stars_collected = 0
         self.star_sound = pygame.mixer.Sound("sounds/collect_star.wav")
+        
+        # Gun related attributes (always equipped)
+        self.gun_image = pygame.image.load("images/gun_lowres.png").convert_alpha()
+        gun_scale = 0.20  # Scale down the gun to 20% of its original size
+        gun_new_size = (int(self.gun_image.get_width() * gun_scale),
+                        int(self.gun_image.get_height() * gun_scale))
+        self.gun_image = pygame.transform.smoothscale(self.gun_image, gun_new_size)
+        self.gun_image_right = self.gun_image
+        self.gun_image_left = pygame.transform.flip(self.gun_image, True, False)
+        self.shoot_cooldown = 0
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -97,6 +108,23 @@ class Player(PhysicsObject):
             self.check_enemy_collisions(level.enemies)
         else:
             self.invulnerable_timer -= 1
+
+        # --- NEW: Gun shooting logic ---
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_f] and self.shoot_cooldown <= 0:
+            from bullet import Bullet  # Import here to avoid circular dependencies
+            if self.facing_right:
+                bullet_x = self.rect.right
+                direction = "right"
+            else:
+                bullet_x = self.rect.left
+                direction = "left"
+            bullet_y = self.rect.centery
+            level.bullets.append(Bullet(bullet_x, bullet_y, direction))
+            self.shoot_cooldown = 20  # Cooldown frames between shots
+        if self.shoot_cooldown > 0:
+            self.shoot_cooldown -= 1
+        # --- End Gun logic ---
 
     def check_slides(self, slides):
         self.on_slide = False
@@ -174,6 +202,14 @@ class Player(PhysicsObject):
     def draw(self, surface):
         image_to_draw = self.image_right if self.facing_right else self.image_left
         surface.blit(image_to_draw, self.rect)
+        # --- NEW: Draw the gun ---
+        gun_image = self.gun_image_right if self.facing_right else self.gun_image_left
+        # Position the gun a bit forward. Using half its width with a slight outward offset.
+        if self.facing_right:
+            gun_offset = (self.rect.right - self.gun_image.get_width() - 2, self.rect.y + self.rect.height // 3)
+        else:
+            gun_offset = (self.rect.x + 2, self.rect.y + self.rect.height // 3)
+        surface.blit(gun_image, gun_offset)
 
     def draw_hearts(self, surface):
         if self.game_over:
