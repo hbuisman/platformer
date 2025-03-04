@@ -50,14 +50,20 @@ ICONS = [
         "image_path": "images/enemy2.png"
     },
     {
+        "type": "spaghetti_monster",
+        "color": (255, 200, 0),  # Choose an appropriate color to represent it
+        "rect": pygame.Rect(0, 552, 60, 60),  # Placed 10px below enemy2
+        "image_path": "images/spaghetti_monster.png"
+    },
+    {
         "type": "elevator",
         "color": (100, 100, 255),
-        "rect": pygame.Rect(0, 552, 112, 30),  # y from 522 to 552 (482+60+10)
+        "rect": pygame.Rect(0, 622, 112, 30),  # Shifted down to allow room for spaghetti monster
         "image_path": "images/stone-platform.png"
     },
     {
         "type": "trash",
-        "rect": pygame.Rect(0, 592, 40, 40),  # Positioned below elevator with a gap of 10px; size 40x40
+        "rect": pygame.Rect(0, 662, 40, 40),  # Shifted down accordingly
         "image_path": "images/trash.png"
     }
 ]
@@ -133,6 +139,10 @@ ITEM_META = {
     "elevator": {
         "name": "Elevator Platform",
         "description": "A moving platform that travels between two points.",
+    },
+    "spaghetti_monster": {
+        "name": "Spaghetti Monster",
+        "description": "A monstrous mess of noodles and sauce.",
     },
 }
 
@@ -479,6 +489,8 @@ class InventoryPanel:
                         level.add_enemy(mx, my, 1)
                     elif self.dragging_icon["type"] == "enemy2":
                         level.add_enemy(mx, my, 2)
+                    elif self.dragging_icon["type"] == "spaghetti_monster":
+                        level.add_enemy(mx, my, "spaghetti_monster")
                     elif self.dragging_icon["type"] == "elevator":
                         level.add_elevator(mx, my)
                     elif self.dragging_icon["type"] == "star":

@@ -4,11 +4,29 @@ from draggable import Draggable
 
 class Enemy(PhysicsObject, Draggable):
     def __init__(self, x, y, enemy_type):
+        # Initialize parent classes.
         PhysicsObject.__init__(self)
         Draggable.__init__(self)
         self.enemy_type = enemy_type
-        self.image = pygame.image.load(f"images/enemy{enemy_type}.png").convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (120, 120))
+
+        # Determine the image path.
+        if enemy_type == "spaghetti_monster":
+            image_path = "images/spaghetti_monster.png"
+        else:
+            image_path = f"images/enemy{enemy_type}.png"
+
+        # Load and scale the image.
+        original_image = pygame.image.load(image_path).convert_alpha()
+        scaled_image = pygame.transform.smoothscale(original_image, (120, 120))
+
+        # Cache both right- and left-facing images.
+        self.image_right = scaled_image
+        self.image_left = pygame.transform.flip(scaled_image, True, False)
+
+        # Set the initial image and facing direction.
+        self.image = self.image_right
+        self.facing_direction = 1  # 1 means right, -1 means left
+
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -53,6 +71,18 @@ class Enemy(PhysicsObject, Draggable):
                 if not ground_ahead:
                     self.autonomous_direction *= -1
         self._handle_elevators(level.elevators, elevator_movements)
+
+        # Update facing direction based on the current horizontal velocity.
+        if self.x_velocity < 0:
+            self.facing_direction = -1
+        elif self.x_velocity > 0:
+            self.facing_direction = 1
+
+        # Set the current image based on the facing direction.
+        if self.facing_direction < 0:
+            self.image = self.image_left
+        else:
+            self.image = self.image_right
 
     def _handle_elevators(self, elevators, elevator_movements):
         elevator_collisions = []

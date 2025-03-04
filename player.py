@@ -49,6 +49,9 @@ class Player(PhysicsObject):
         self.gun_image_left = pygame.transform.flip(self.gun_image, True, False)
         self.shoot_cooldown = 0
 
+        # NEW: Load the gun shooting sound. Default to "gun.wav"
+        self.gun_shoot_sound = pygame.mixer.Sound("sounds/gun.wav")
+
     def handle_input(self):
         keys = pygame.key.get_pressed()
         if not self.on_slide:
@@ -121,6 +124,8 @@ class Player(PhysicsObject):
                 direction = "left"
             bullet_y = self.rect.centery
             level.bullets.append(Bullet(bullet_x, bullet_y, direction))
+            # Play the gun shooting sound
+            self.gun_shoot_sound.play()
             self.shoot_cooldown = 20  # Cooldown frames between shots
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
@@ -231,6 +236,12 @@ class Player(PhysicsObject):
         self.ouch_sound = pygame.mixer.Sound(sound_data["ouch_sound"])
         self.boing_sound = pygame.mixer.Sound(sound_data["boing_sound"])
         self.portal_sound = pygame.mixer.Sound(sound_data["portal_sound"])
+        
+        # NEW: Update gun shooting sound based on character type
+        if "player_small" in new_sprite_path:
+            self.gun_shoot_sound = pygame.mixer.Sound("sounds/small_player_shoot.wav")
+        else:
+            self.gun_shoot_sound = pygame.mixer.Sound("sounds/gun.wav")
         
         # Preserve position with original size
         old_center = self.rect.center
