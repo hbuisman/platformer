@@ -73,6 +73,9 @@ class Level:
         self.trashes = []  # New list to hold Trash items
         self.bullets = []  # <--- NEW: List to track active bullets
         
+        # ** NEW: Initialize confetti explosions list **
+        self.confetti_explosions = []
+        
         # Add a few default collectible stars and trash items.
         # Positions are chosen arbitrarily; adjust as desired.
         self.add_star(400, 300)
@@ -204,6 +207,9 @@ class Level:
         # --- NEW: Draw bullets ---
         for bullet in self.bullets:
             bullet.draw(surface)
+        # --- NEW: Draw confetti explosions ---
+        for explosion in self.confetti_explosions:
+            explosion.draw(surface)
 
     def remove_item(self, item):
         if item in self.platforms:
@@ -309,10 +315,21 @@ class Level:
                 # Check collision with enemies
                 for enemy in self.enemies[:]:
                     if bullet.rect.colliderect(enemy.rect):
+                        # Create a massive explosion using 100 particles
+                        from confetti import ConfettiExplosion
+                        explosion = ConfettiExplosion(enemy.rect.center, num_particles=100)
+                        self.confetti_explosions.append(explosion)
                         self.enemies.remove(enemy)
                         if bullet in self.bullets:
                             self.bullets.remove(bullet)
                         break
+                        
+        # --- Update confetti explosions ---
+        for explosion in self.confetti_explosions[:]:
+            explosion.update()
+            if explosion.is_finished():
+                self.confetti_explosions.remove(explosion)
+                
         # --- End bullet update ---
         return elevator_movements
 
