@@ -99,12 +99,12 @@ CHARACTERS = [
         "hovered": False
     },
     {
-        "id": "daniel",
-        "portrait": pygame.image.load("images/player_daniel_portrait.png"),
-        "sprite": "images/player_daniel.png",
-        "ouch_sound": "sounds/daniel_player_ouch.wav",
-        "boing_sound": "sounds/daniel_player_boing.wav",
-        "portal_sound": "sounds/daniel_player_portal.wav",
+        "id": "boy",
+        "portrait": pygame.image.load("images/player_boy_portrait.png"),
+        "sprite": "images/player_boy.png",
+        "ouch_sound": "sounds/boy_player_ouch.wav",
+        "boing_sound": "sounds/boy_player_boing.wav",
+        "portal_sound": "sounds/boy_player_portal.wav",
         "rect": pygame.Rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE),
         "hovered": False
     }
