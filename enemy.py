@@ -16,15 +16,42 @@ class Enemy(PhysicsObject, Draggable):
         self.on_elevator = False
         self.elevator_offset = None
         self.controlled = False
+        # Autonomous movement: 1 for right, -1 for left.
+        self.autonomous_direction = 1
 
     def update(self, platforms, level, elevator_movements):
         if self.being_dragged:
             return
+        # If not controlled by the player, set our horizontal speed automatically.
+        if not self.controlled:
+            self.x_velocity = 5 * self.autonomous_direction
+        # Combine the regular platforms with elevator platforms.
         all_platforms = platforms.copy()
         for elevator in level.elevators:
             all_platforms.append(elevator.platform_rect)
+        # Remember the x-position before updating physics.
+        old_x = self.rect.x
         self.update_physics(all_platforms, level.trampolines, level.portals, level)
-        self.handle_horizontal_collisions(platforms)
+        # If not controlled, check if the movement was blocked (or check for falling off an edge)
+        if not self.controlled:
+            # If the enemy didn't move horizontally, assume a collision and reverse direction.
+            if self.rect.x == old_x:
+                self.autonomous_direction *= -1
+            # Otherwise, if the enemy is on the ground, check if there is ground ahead.
+            elif self.on_ground:
+                if self.autonomous_direction > 0:
+                    look_x = self.rect.right + 1
+                else:
+                    look_x = self.rect.left - 1
+                look_y = self.rect.bottom + 1
+                ground_ahead = False
+                for platform in platforms:
+                    # Assume each platform has a 'rect' attribute.
+                    if platform.rect.collidepoint(look_x, look_y):
+                        ground_ahead = True
+                        break
+                if not ground_ahead:
+                    self.autonomous_direction *= -1
         self._handle_elevators(level.elevators, elevator_movements)
 
     def _handle_elevators(self, elevators, elevator_movements):
